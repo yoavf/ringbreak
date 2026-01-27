@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="660" height="400" viewBox="0 0 660 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2a2a3e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1a2e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0.8" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="660" height="400" fill="url(#bgGradient)"/>
+
+  <!-- Subtle grid pattern -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+  </pattern>
+  <rect width="660" height="400" fill="url(#grid)"/>
+
+  <!-- Arrow pointing from app to Applications -->
+  <g transform="translate(330, 220)">
+    <!-- Arrow body -->
+    <path d="M -60 0 L 30 0" stroke="url(#arrowGradient)" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <!-- Arrow head -->
+    <path d="M 20 -12 L 45 0 L 20 12" stroke="url(#arrowGradient)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- Instruction text -->
+  <text x="330" y="340" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" fill="rgba(255,255,255,0.6)" text-anchor="middle">
+    Drag Ring Break to Applications to install
+  </text>
+
+  <!-- App name/branding -->
+  <text x="330" y="60" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="600" fill="rgba(255,255,255,0.9)" text-anchor="middle">
+    Ring Break
+  </text>
+
+  <!-- Version text -->
+  <text x="330" y="85" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="rgba(255,255,255,0.4)" text-anchor="middle">
+    Desk exercises with your Ring-Con
+  </text>
+</svg>
