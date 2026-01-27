@@ -39,43 +39,72 @@ struct CalibrationView: View {
         }
     }
 
+    /// Target flex value for the 3D model based on current calibration phase
+    /// 0.0 = full pull, 0.5 = neutral, 1.0 = full squeeze
+    private var targetFlexValue: Double {
+        switch ringConManager.calibrationPhase {
+        case .neutral:
+            return 0.5
+        case .pull:
+            return 0.0
+        case .squeeze:
+            return 1.0
+        case .complete:
+            return 0.5
+        default:
+            return 0.5
+        }
+    }
+
     var body: some View {
-        VStack(spacing: 20) {
-            Text(title)
-                .font(.title)
-                .fontWeight(.bold)
+        HStack(spacing: 24) {
+            // 3D model preview showing target position
+            RingConSceneView(flexValue: targetFlexValue)
+                .frame(width: 120, height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                )
 
-            Text(instruction)
-                .font(.body)
-                .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
+            VStack(spacing: 16) {
+                Text(title)
+                    .font(.title)
+                    .fontWeight(.bold)
 
-            if ringConManager.calibrationPhase != .complete {
-                Text("\(ringConManager.calibrationSecondsRemaining)s")
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-            } else {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 48))
-                    .foregroundColor(.green)
-            }
+                Text(instruction)
+                    .font(.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: 240)
 
-            HStack(spacing: 12) {
-                Button("Cancel") {
-                    ringConManager.cancelCalibration()
-                    onClose()
+                if ringConManager.calibrationPhase != .complete {
+                    Text("\(ringConManager.calibrationSecondsRemaining)s")
+                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                } else {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(.green)
                 }
-                .buttonStyle(.bordered)
 
-                if ringConManager.calibrationPhase == .complete {
-                    Button("Done") {
+                HStack(spacing: 12) {
+                    Button("Cancel") {
+                        ringConManager.cancelCalibration()
                         onClose()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.bordered)
+
+                    if ringConManager.calibrationPhase == .complete {
+                        Button("Done") {
+                            onClose()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
                 }
             }
         }
-        .frame(minWidth: 420, minHeight: 260)
+        .frame(minWidth: 480, minHeight: 280)
         .padding()
         .onChange(of: ringConManager.calibrationPhase) { newPhase in
             if newPhase == .complete {
