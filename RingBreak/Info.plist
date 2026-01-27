@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>RingBreak needs Bluetooth access to connect to your Nintendo Joy-Con and Ring-Con for fitness tracking.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2026 Yoav Farhi. All rights reserved.</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>ATSApplicationFontsPath</key>
+	<string>Fonts</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>RingBreak sends reminders to help you take regular exercise breaks throughout the day.</string>
+</dict>
+</plist>
