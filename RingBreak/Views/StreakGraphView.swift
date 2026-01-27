@@ -80,15 +80,42 @@ struct StreakGraphView: View {
 
             // Empty state overlay
             if !hasAnyData {
-                VStack(spacing: 16) {
-                    Image(systemName: "flame")
-                        .font(.system(size: 48))
-                        .foregroundColor(.orange.opacity(0.6))
-                    Text("Log your first session\nto start a streak")
-                        .font(.title3)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white.opacity(0.8))
-                        .multilineTextAlignment(.center)
+                VStack(spacing: 0) {
+                    // Back button header
+                    HStack {
+                        Button {
+                            onBack()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left")
+                                    .font(.body.weight(.semibold))
+                                Text("Back")
+                            }
+                            .foregroundColor(.orange)
+                        }
+                        .buttonStyle(.plain)
+                        .keyboardShortcut(.escape, modifiers: [])
+
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 16)
+
+                    // Centered content
+                    Spacer()
+
+                    VStack(spacing: 16) {
+                        Image(systemName: "flame")
+                            .font(.system(size: 48))
+                            .foregroundColor(.orange.opacity(0.6))
+                        Text("Log your first session\nto start a streak")
+                            .font(.title3)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                    }
+
+                    Spacer()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(backgroundColor.opacity(0.95))
