@@ -113,20 +113,21 @@ class MenubarController: ObservableObject {
     }
 
     @objc private func openApp() {
-        // Activate the app first
-        NSApp.activate(ignoringOtherApps: true)
-
-        // Find the main app window
-        if let window = NSApp.windows.first(where: { $0.canBecomeKey && !($0 is NSPanel) }) {
-            // If window is miniaturized, deminiaturize it
-            if window.isMiniaturized {
-                window.deminiaturize(nil)
-            }
-            // Show and focus the window
-            window.orderFrontRegardless()
+        // Switch to regular mode to show dock icon and allow proper window activation
+        let wasAccessory = NSApp.activationPolicy() == .accessory
+        if wasAccessory {
+            NSApp.setActivationPolicy(.regular)
         }
 
-        onActivate?()
+        // Show the window via AppDelegate callback
+        // Need slight delay after mode change for window activation to work
+        if wasAccessory {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                self.onActivate?()
+            }
+        } else {
+            onActivate?()
+        }
     }
 
     @objc private func openGitHub() {

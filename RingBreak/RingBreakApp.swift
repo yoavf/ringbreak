@@ -8,8 +8,80 @@
 import SwiftUI
 import UserNotifications
 
+class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        // When dock icon is clicked and no visible windows, show our hidden window
+        if !flag {
+            openMainWindow()
+        }
+        return true
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        // When app becomes active (e.g., via alt+tab), show the window if hidden
+        let hasVisibleWindow = NSApp.windows.contains { window in
+            window.isVisible &&
+            window.identifier?.rawValue == "MainWindow"
+        }
+        if !hasVisibleWindow {
+            openMainWindow()
+        }
+    }
+
+    /// Opens the main window if it exists (hidden or visible)
+    @MainActor
+    func openMainWindow() {
+        print("=== openMainWindow ===")
+        print("Windows count: \(NSApp.windows.count)")
+        for (i, w) in NSApp.windows.enumerated() {
+            print("  [\(i)] id=\(w.identifier?.rawValue ?? "nil") visible=\(w.isVisible) canBecomeKey=\(w.canBecomeKey)")
+        }
+
+        // Look for our main window by identifier (it may be hidden but not destroyed)
+        if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "MainWindow" }) {
+            print("Found MainWindow")
+
+            if window.isMiniaturized {
+                window.deminiaturize(nil)
+            }
+
+            window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+
+            // Use the newer activation API which works better
+            NSRunningApplication.current.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+
+            window.makeKeyAndOrderFront(nil)
+
+            print("After show: visible=\(window.isVisible) isKey=\(window.isKeyWindow)")
+            return
+        }
+
+        print("MainWindow not found, trying fallback")
+        // Fallback: look for any suitable window
+        if let window = NSApp.windows.first(where: { window in
+            window.canBecomeKey &&
+            !(window is NSPanel) &&
+            String(describing: type(of: window)) != "NSStatusBarWindow" &&
+            String(describing: type(of: window)) != "NSPopupMenuWindow"
+        }) {
+            print("Found fallback window")
+            if window.isMiniaturized {
+                window.deminiaturize(nil)
+            }
+            window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        print("No window found at all!")
+        NSApp.activate(ignoringOtherApps: true)
+    }
+}
+
 @main
 struct RingBreakApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var menubarController = MenubarController()
     @StateObject private var notificationService = NotificationService.shared
 
@@ -31,15 +103,12 @@ struct RingBreakApp: App {
     }
 
     private func setupApp() {
-        menubarController.setActivateCallback {
-            // Window activation handled in controller
+        menubarController.setActivateCallback { [weak appDelegate] in
+            appDelegate?.openMainWindow()
         }
 
-        // Apply saved dock icon visibility (must be done after NSApp is initialized)
-        let showDock = UserDefaults.standard.object(forKey: UserDefaultsKeys.showDockIcon) as? Bool ?? true
-        if !showDock {
-            NSApp.setActivationPolicy(.accessory)
-        }
+        // Dock icon always shows on startup with the window.
+        // It hides (accessory mode) only when user closes the window, if that setting is enabled.
 
         if notificationService.isEnabled && !notificationService.permissionGranted {
             Task {
