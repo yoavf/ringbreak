@@ -1,0 +1,180 @@
+name: CD - Release DMG
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+env:
+  APP_NAME: RingBreak
+  SCHEME: RingBreak
+  PROJECT: RingBreak.xcodeproj
+
+jobs:
+  build-and-release:
+    name: Build, Sign, and Release DMG
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Install Apple certificate and provisioning profile
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          # Create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          # Import certificate from secrets
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+
+          # Create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # Import certificate to keychain
+          security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+      - name: Build Release
+        env:
+          DEVELOPMENT_TEAM: ${{ secrets.DEVELOPMENT_TEAM }}
+          CODE_SIGN_IDENTITY: ${{ secrets.CODE_SIGN_IDENTITY }}
+        run: |
+          # Create build directory
+          mkdir -p build/Release
+
+          # Build the app with code signing
+          xcodebuild build \
+            -project $PROJECT \
+            -scheme $SCHEME \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData \
+            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+            CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
+            CODE_SIGN_STYLE=Manual \
+            OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime"
+
+          # Copy built app to expected location
+          cp -R "DerivedData/Build/Products/Release/${APP_NAME}.app" "build/Release/"
+
+      - name: Verify code signature
+        run: |
+          codesign --verify --deep --strict "build/Release/${APP_NAME}.app"
+          codesign -dv --verbose=4 "build/Release/${APP_NAME}.app"
+
+      - name: Create DMG
+        run: |
+          chmod +x scripts/create-dmg.sh
+          ./scripts/create-dmg.sh "build/Release/${APP_NAME}.app"
+
+      - name: Notarize DMG
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Submit for notarization
+          xcrun notarytool submit "build/${APP_NAME}.dmg" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          # Staple the notarization ticket
+          xcrun stapler staple "build/${APP_NAME}.dmg"
+
+      - name: Verify notarization
+        run: |
+          xcrun stapler validate "build/${APP_NAME}.dmg"
+          spctl -a -t open --context context:primary-signature "build/${APP_NAME}.dmg"
+
+      - name: Rename DMG with version
+        run: |
+          mv "build/${APP_NAME}.dmg" "build/${APP_NAME}-${{ steps.version.outputs.version }}.dmg"
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          # Get commits since last tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s" $PREVIOUS_TAG..HEAD)
+          else
+            COMMITS=$(git log --pretty=format:"- %s" -10)
+          fi
+
+          # Write to file for multiline support
+          cat << EOF > release_notes.md
+          ## What's New in v${{ steps.version.outputs.version }}
+
+          $COMMITS
+
+          ---
+
+          ### Installation
+
+          1. Download \`${APP_NAME}-${{ steps.version.outputs.version }}.dmg\`
+          2. Open the DMG file
+          3. Drag Ring Break to your Applications folder
+          4. Launch Ring Break from Applications
+
+          ### Requirements
+
+          - macOS 13.0 (Ventura) or later
+          - Nintendo Joy-Con (R) controller
+          - Nintendo Ring-Con accessory
+          - Bluetooth connectivity
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Ring Break v${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
+          files: |
+            build/${{ env.APP_NAME }}-${{ steps.version.outputs.version }}.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
