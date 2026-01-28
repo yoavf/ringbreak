@@ -22,6 +22,7 @@ DMG_RESOURCES_DIR="$(dirname "$0")/dmg-resources"
 OUTPUT_DIR="$(dirname "$0")/../build"
 BACKGROUND_SVG="${DMG_RESOURCES_DIR}/background.svg"
 BACKGROUND_PNG="${DMG_RESOURCES_DIR}/background.png"
+DS_STORE_FILE="${DMG_RESOURCES_DIR}/DS_Store"
 
 # DMG window dimensions (should match background image)
 WINDOW_WIDTH=660
@@ -188,6 +189,16 @@ create_dmg() {
         log_info "Background image added"
     fi
 
+    # Apply pre-built .DS_Store to staging if available
+    if [[ -f "$DS_STORE_FILE" ]]; then
+        log_info "Using pre-built .DS_Store for Finder view settings..."
+        cp "$DS_STORE_FILE" "$staging_dir/.DS_Store"
+    fi
+
+    # Prevent .fseventsd from being created on the volume
+    mkdir -p "$staging_dir/.fseventsd"
+    touch "$staging_dir/.fseventsd/no_log"
+
     # Calculate DMG size (app size + 20MB buffer)
     local app_size
     app_size=$(du -sm "$app_path" | cut -f1)
@@ -204,69 +215,6 @@ create_dmg() {
         -format UDRW \
         -size ${dmg_size}m \
         "$temp_dmg"
-
-    # Mount the DMG
-    log_info "Mounting DMG for customization..."
-    local device
-    device=$(hdiutil attach -readwrite -noverify -noautoopen "$temp_dmg" | grep -E '^/dev/' | head -1 | awk '{print $1}')
-    local mount_point="/Volumes/${VOLUME_NAME}"
-
-    # Wait for mount
-    sleep 2
-
-    if [[ ! -d "$mount_point" ]]; then
-        log_error "Failed to mount DMG at $mount_point"
-        hdiutil detach "$device" 2>/dev/null || true
-        rm -rf "$temp_dir"
-        exit 1
-    fi
-
-    # Apply custom view settings using AppleScript
-    log_info "Configuring Finder view settings..."
-
-    # Build the AppleScript
-    local applescript="
-tell application \"Finder\"
-    tell disk \"${VOLUME_NAME}\"
-        open
-        set current view of container window to icon view
-        set toolbar visible of container window to false
-        set statusbar visible of container window to false
-        set the bounds of container window to {100, 100, $((100 + WINDOW_WIDTH)), $((100 + WINDOW_HEIGHT))}
-        set viewOptions to the icon view options of container window
-        set arrangement of viewOptions to not arranged
-        set icon size of viewOptions to ${ICON_SIZE}"
-
-    # Add background if available
-    if [[ -n "$background_file" ]]; then
-        applescript+="
-        set background picture of viewOptions to file \"${background_file}\""
-    fi
-
-    applescript+="
-        set position of item \"${APP_NAME}.app\" of container window to {${APP_ICON_X}, ${APP_ICON_Y}}
-        set position of item \"Applications\" of container window to {${APPLICATIONS_ICON_X}, ${APPLICATIONS_ICON_Y}}
-        close
-        open
-        update without registering applications
-        delay 2
-    end tell
-end tell
-"
-
-    # Run AppleScript
-    echo "$applescript" | osascript || log_warning "AppleScript customization may have partially failed"
-
-    # Give Finder time to write changes
-    sync
-    sleep 3
-
-    # Unmount
-    log_info "Unmounting temporary DMG..."
-    hdiutil detach "$device" -force || {
-        sleep 5
-        hdiutil detach "$device" -force
-    }
 
     # Convert to compressed DMG
     log_info "Creating final compressed DMG..."
