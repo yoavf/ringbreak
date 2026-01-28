@@ -1,6 +1,8 @@
 # Ring Break
 
-A macOS menu bar app for quick desk exercises using the Nintendo Ring-Con controller.
+A macOS menu bar app for quick exercise breaks using the Nintendo Ring-Con controller.
+
+![AppShowcase](https://github.com/user-attachments/assets/bbff4cae-deb7-4608-946f-9dd6c2e73258)
 
 ## Requirements
 
