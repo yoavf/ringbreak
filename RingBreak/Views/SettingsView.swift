@@ -308,7 +308,7 @@ struct SettingsView: View {
                                 Text("Version")
                                     .foregroundColor(.primary)
                                 Spacer()
-                                Text("1.0")
+                                Text(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0")
                                     .foregroundColor(.secondary)
                             }
                             .padding(.horizontal, 12)
