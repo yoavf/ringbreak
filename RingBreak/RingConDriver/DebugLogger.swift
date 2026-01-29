@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import AppKit
+import UniformTypeIdentifiers
 
 /// Singleton for capturing debug data from HID communication
 @MainActor
@@ -36,10 +38,12 @@ class DebugLogger: ObservableObject {
     /// File URL for log export
     var logFileURL: URL {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return documentsPath.appendingPathComponent("fitring_debug.log")
+        return documentsPath.appendingPathComponent("ringbreak_debug.log")
     }
 
-    private init() {}
+    private init() {
+        log("DebugLogger initialized", category: .general)
+    }
 
     // MARK: - Logging Methods
 
@@ -102,14 +106,100 @@ class DebugLogger: ObservableObject {
 
     // MARK: - Export
 
-    func exportToFile() -> URL {
-        let content = entries.map { entry in
+    /// Build the full log content with a diagnostic header
+    func buildExportContent(connectionState: String, bluetoothStatus: String, ringConAttached: Bool, calibrationInfo: String) -> String {
+        var sections: [String] = []
+
+        // Header
+        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+        let buildNumber = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
+        let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
+
+        sections.append("""
+        ========================================
+        Ring Break Debug Log
+        ========================================
+        Exported: \(ISO8601DateFormatter().string(from: Date()))
+        App Version: \(appVersion) (\(buildNumber))
+        macOS: \(osVersion)
+        Connection: \(connectionState)
+        Bluetooth: \(bluetoothStatus)
+        Ring-Con Attached: \(ringConAttached)
+        Calibration: \(calibrationInfo)
+        Last Raw Flex: \(lastRawFlexValue)
+        Log Entries: \(entries.count)
+        """)
+
+        // MCU Steps
+        if !mcuSteps.isEmpty {
+            sections.append("""
+            ----------------------------------------
+            MCU Initialization Steps
+            ----------------------------------------
+            \(mcuSteps.joined(separator: "\n"))
+            """)
+        }
+
+        // Report counts
+        if !reportCounts.isEmpty {
+            let counts = reportCounts.sorted { $0.key < $1.key }
+                .map { "  0x\(String(format: "%02X", $0.key)): \($0.value)" }
+                .joined(separator: "\n")
+            sections.append("""
+            ----------------------------------------
+            HID Report Counts
+            ----------------------------------------
+            \(counts)
+            """)
+        }
+
+        // Log entries
+        let logLines = entries.map { entry in
             let timestamp = ISO8601DateFormatter().string(from: entry.timestamp)
             return "[\(timestamp)] [\(entry.category.rawValue)] \(entry.message)"
         }.joined(separator: "\n")
 
+        sections.append("""
+        ----------------------------------------
+        Log Entries
+        ----------------------------------------
+        \(logLines)
+        """)
+
+        return sections.joined(separator: "\n\n")
+    }
+
+    func exportToFile() -> URL {
+        let content = buildExportContent(
+            connectionState: "unknown",
+            bluetoothStatus: "unknown",
+            ringConAttached: false,
+            calibrationInfo: "unknown"
+        )
+
         try? content.write(to: logFileURL, atomically: true, encoding: .utf8)
         return logFileURL
+    }
+
+    /// Present a save panel and export the debug log
+    func presentExportPanel(connectionState: String, bluetoothStatus: String, ringConAttached: Bool, calibrationInfo: String) {
+        let content = buildExportContent(
+            connectionState: connectionState,
+            bluetoothStatus: bluetoothStatus,
+            ringConAttached: ringConAttached,
+            calibrationInfo: calibrationInfo
+        )
+
+        let panel = NSSavePanel()
+        panel.title = "Export Debug Log"
+        panel.nameFieldStringValue = "ringbreak_debug.log"
+        panel.allowedContentTypes = [.plainText]
+        panel.canCreateDirectories = true
+
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            try? content.write(to: url, atomically: true, encoding: .utf8)
+        }
     }
 
     func clear() {
