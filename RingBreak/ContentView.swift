@@ -16,6 +16,10 @@ struct ContentView: View {
                 RingBreakView(ringConManager: ringConManager, menubarController: menubarController)
             } else {
                 OnboardingView {
+                    // Re-initialize Ring-Con MCU after onboarding
+                    // This is needed because the user clips in the Ring-Con during onboarding,
+                    // after the Joy-Con has already connected and MCU initialized
+                    ringConManager.reinitializeRingCon()
                     hasCompletedOnboarding = true
                 }
             }

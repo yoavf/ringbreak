@@ -381,6 +381,25 @@ class RingConManager: NSObject, ObservableObject {
         yawRestSamples = 0
     }
 
+    /// Re-initialize Ring-Con MCU configuration
+    /// Call this after the user clips in the Ring-Con to re-detect it
+    func reinitializeRingCon() {
+        guard isConnected else { return }
+
+        // Reset Ring-Con state
+        ringConAttached = false
+        mcuInitialized = false
+        mcuReportCount = 0
+        neutralFlexByte = nil
+        flexValue = 0.5
+        lastFlexByte = 0x0A
+
+        // Re-run MCU initialization
+        Task {
+            await initializeRingCon()
+        }
+    }
+
     /// Start calibration process
     func calibrate() {
         startGuidedCalibration()
