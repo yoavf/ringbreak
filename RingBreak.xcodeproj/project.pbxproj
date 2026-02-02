@@ -29,6 +29,7 @@
 		BDDDC60B593CEA40AA16D209 /* NotConnectedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6E191D989549D7EF0F04840 /* NotConnectedView.swift */; };
 		CCC00001 /* DebugLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCC00011 /* DebugLogger.swift */; };
 		DD2DCA9094930A0DC2F11153 /* ExerciseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DA129260DC042FB1F0121C5 /* ExerciseView.swift */; };
+		RCD00001 /* RingConDisconnectedOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = RCD00002 /* RingConDisconnectedOverlay.swift */; };
 		DDD00001 /* CalibrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA00054 /* CalibrationView.swift */; };
 		FFF00001 /* RingConSceneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFF00002 /* RingConSceneView.swift */; };
 		GGG00001 /* BreakGameState.swift in Sources */ = {isa = PBXBuildFile; fileRef = GGG00002 /* BreakGameState.swift */; };
@@ -42,10 +43,13 @@
 		LLL00005 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LLL00006 /* OnboardingView.swift */; };
 		MMM00001 /* UserDefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = MMM00002 /* UserDefaultsKeys.swift */; };
 		MMM00003 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = MMM00004 /* Constants.swift */; };
+		TST00001 /* BreakGameStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TST00011 /* BreakGameStateTests.swift */; };
+		TST00002 /* GameDifficultyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = TST00012 /* GameDifficultyTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		6DA129260DC042FB1F0121C5 /* ExerciseView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExerciseView.swift; sourceTree = "<group>"; };
+		RCD00002 /* RingConDisconnectedOverlay.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RingConDisconnectedOverlay.swift; sourceTree = "<group>"; };
 		77175DD22F2945D5004382CE /* connect-joycon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "connect-joycon.png"; sourceTree = "<group>"; };
 		77175DD32F2945D5004382CE /* intro.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = intro.png; sourceTree = "<group>"; };
 		77175DD42F2945D5004382CE /* pair-joycon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "pair-joycon.png"; sourceTree = "<group>"; };
@@ -83,6 +87,9 @@
 		LLL00006 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		MMM00002 /* UserDefaultsKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsKeys.swift; sourceTree = "<group>"; };
 		MMM00004 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		TST00010 /* RingBreakTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RingBreakTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		TST00011 /* BreakGameStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreakGameStateTests.swift; sourceTree = "<group>"; };
+		TST00012 /* GameDifficultyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameDifficultyTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -95,7 +102,32 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		TST00050 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXContainerItemProxy section */
+		TST00040 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AAA000F0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AAA000B0;
+			remoteInfo = RingBreak;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		TST00041 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AAA000B0 /* RingBreak */;
+			targetProxy = TST00040 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXGroup section */
 		77175DD52F2945D5004382CE /* Onboarding */ = {
@@ -120,6 +152,7 @@
 			isa = PBXGroup;
 			children = (
 				AAA00080 /* RingBreak */,
+				TST00020 /* RingBreakTests */,
 				AAA00090 /* Frameworks */,
 				AAA000A0 /* Products */,
 			);
@@ -167,6 +200,7 @@
 				F6E191D989549D7EF0F04840 /* NotConnectedView.swift */,
 				861A0DBCDD64D82FB69AD82C /* ReadyView.swift */,
 				6DA129260DC042FB1F0121C5 /* ExerciseView.swift */,
+				RCD00002 /* RingConDisconnectedOverlay.swift */,
 				BF29220AC09F0891CEB6AB35 /* CelebrationView.swift */,
 			);
 			path = Views;
@@ -208,6 +242,7 @@
 			isa = PBXGroup;
 			children = (
 				AAA00000 /* RingBreak.app */,
+				TST00010 /* RingBreakTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -238,6 +273,15 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
+		TST00020 /* RingBreakTests */ = {
+			isa = PBXGroup;
+			children = (
+				TST00011 /* BreakGameStateTests.swift */,
+				TST00012 /* GameDifficultyTests.swift */,
+			);
+			path = RingBreakTests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -258,6 +302,23 @@
 			productReference = AAA00000 /* RingBreak.app */;
 			productType = "com.apple.product-type.application";
 		};
+		TST00030 /* RingBreakTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = TST00080 /* Build configuration list for PBXNativeTarget "RingBreakTests" */;
+			buildPhases = (
+				TST00060 /* Sources */,
+				TST00050 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				TST00041 /* PBXTargetDependency */,
+			);
+			name = RingBreakTests;
+			productName = RingBreakTests;
+			productReference = TST00010 /* RingBreakTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -270,6 +331,10 @@
 				TargetAttributes = {
 					AAA000B0 = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					TST00030 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = AAA000B0;
 					};
 				};
 			};
@@ -287,6 +352,7 @@
 			projectRoot = "";
 			targets = (
 				AAA000B0 /* RingBreak */,
+				TST00030 /* RingBreakTests */,
 			);
 		};
 /* End PBXProject section */
@@ -338,7 +404,17 @@
 				BDDDC60B593CEA40AA16D209 /* NotConnectedView.swift in Sources */,
 				2C39EA064CA44DB6C72C3D4B /* ReadyView.swift in Sources */,
 				DD2DCA9094930A0DC2F11153 /* ExerciseView.swift in Sources */,
+				RCD00001 /* RingConDisconnectedOverlay.swift in Sources */,
 				11D8AA558F52B30AF518E486 /* CelebrationView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		TST00060 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				TST00001 /* BreakGameStateTests.swift in Sources */,
+				TST00002 /* GameDifficultyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -531,6 +607,40 @@
 			};
 			name = Release;
 		};
+		TST00070 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.ringbreak.RingBreakTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RingBreak.app/Contents/MacOS/RingBreak";
+			};
+			name = Debug;
+		};
+		TST00071 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				PRODUCT_BUNDLE_IDENTIFIER = app.ringbreak.RingBreakTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/RingBreak.app/Contents/MacOS/RingBreak";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -548,6 +658,15 @@
 			buildConfigurations = (
 				AAA00110 /* Debug */,
 				AAA00111 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		TST00080 /* Build configuration list for PBXNativeTarget "RingBreakTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				TST00070 /* Debug */,
+				TST00071 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
