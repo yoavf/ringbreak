@@ -97,15 +97,17 @@ struct NotConnectedView: View {
             .disabled(ringConManager.connectionState == .scanning || ringConManager.connectionState == .connecting || ringConManager.bluetoothStatus == .off || ringConManager.bluetoothStatus == .unauthorized)
             .padding(.bottom, 8)
 
-            // STATUS - at bottom, fixed size
+            // STATUS - at bottom, fixed size (hidden when button already shows state)
             VStack(spacing: 4) {
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(statusColor)
-                        .frame(width: 6, height: 6)
-                    Text(statusText)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                if ringConManager.connectionState != .scanning && ringConManager.connectionState != .connecting {
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(statusColor)
+                            .frame(width: 6, height: 6)
+                        Text(statusText)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 if let error = ringConManager.lastError {
                     Text(error)

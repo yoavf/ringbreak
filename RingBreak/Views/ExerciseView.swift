@@ -22,12 +22,9 @@ struct ExerciseView: View {
     @State private var failedAttemptTime: Date?
     @State private var showCalibrationPrompt = false
     @State private var calibrationTriggeredDuringExercise = false
-    private let calibrationPromptDelay: TimeInterval = 5
 
     // Arrow animation
     @State private var arrowAnimationPhase: CGFloat = 0
-
-    private let holdDuration = 3
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -129,7 +126,6 @@ struct ExerciseView: View {
                     holdState = .idle
                     calibrationTriggeredDuringExercise = true
                     onCancel()
-                    ringConManager.startGuidedCalibration()
                     showingCalibration = true
                     showCalibrationPrompt = false
                 } label: {
@@ -144,6 +140,9 @@ struct ExerciseView: View {
         .onChange(of: ringConManager.flexValue) { newValue in
             checkTargetReached(newValue)
             trackCalibrationNeed(newValue)
+        }
+        .onDisappear {
+            cancelHoldTimer()
         }
         .onChange(of: gameState.phase) { _ in
             holdState = .idle
@@ -160,7 +159,7 @@ struct ExerciseView: View {
 
     private var targetProgressView: some View {
         let targetThreshold = gameState.difficulty.targetThreshold
-        let startThreshold: Double = 0.55
+        let startThreshold = Constants.relaxedThreshold
 
         let progress: Double
         let encouragement: String
@@ -251,8 +250,7 @@ struct ExerciseView: View {
     private func checkTargetReached(_ flexValue: Double) {
         let targetThreshold = gameState.difficulty.targetThreshold
         let holdTolerance = gameState.difficulty.holdTolerance
-        let holdMinThreshold = targetThreshold - holdTolerance
-        let relaxedThreshold = 0.55
+        let holdMinThreshold = max(targetThreshold - holdTolerance, Constants.relaxedThreshold)
 
         if gameState.phase == .squeezePhase {
             if holdState == .holding {
@@ -261,22 +259,22 @@ struct ExerciseView: View {
                     withAnimation { holdState = .idle }
                 }
             } else if holdState == .relaxing {
-                if flexValue < relaxedThreshold {
+                if flexValue < Constants.relaxedThreshold {
                     withAnimation { holdState = .idle }
                 }
             } else {
                 if flexValue >= targetThreshold {
                     startHoldCountdown()
-                } else if flexValue > relaxedThreshold && holdState == .idle {
+                } else if flexValue > Constants.relaxedThreshold && holdState == .idle {
                     holdState = .active
-                } else if flexValue <= relaxedThreshold && holdState == .active {
+                } else if flexValue <= Constants.relaxedThreshold && holdState == .active {
                     holdState = .idle
                 }
             }
         } else if gameState.phase == .pullPhase {
             let pullTarget = 1.0 - targetThreshold
             let pullHoldMin = 1.0 - holdMinThreshold
-            let pullRelaxed = 1.0 - relaxedThreshold
+            let pullRelaxed = 1.0 - Constants.relaxedThreshold
 
             if holdState == .holding {
                 if flexValue > pullHoldMin {
@@ -308,11 +306,12 @@ struct ExerciseView: View {
 
         let isAttempting: Bool
         if gameState.phase == .squeezePhase {
-            let effortThreshold = 0.55 + (targetThreshold - 0.55) * 0.5
+            let effortThreshold = Constants.relaxedThreshold + (targetThreshold - Constants.relaxedThreshold) * 0.5
             isAttempting = flexValue > effortThreshold && flexValue < targetThreshold && holdState != .holding
         } else {
             let pullTarget = 1.0 - targetThreshold
-            let effortThreshold = 0.45 - (0.45 - pullTarget) * 0.5
+            let pullRelaxed = 1.0 - Constants.relaxedThreshold
+            let effortThreshold = pullRelaxed - (pullRelaxed - pullTarget) * 0.5
             isAttempting = flexValue < effortThreshold && flexValue > pullTarget && holdState != .holding
         }
 
@@ -320,7 +319,7 @@ struct ExerciseView: View {
             if failedAttemptTime == nil {
                 failedAttemptTime = Date()
             } else if let startTime = failedAttemptTime,
-                      Date().timeIntervalSince(startTime) > calibrationPromptDelay {
+                      Date().timeIntervalSince(startTime) > Constants.calibrationPromptDelay {
                 withAnimation { showCalibrationPrompt = true }
             }
         } else if holdState == .idle {
@@ -336,7 +335,7 @@ struct ExerciseView: View {
         SoundHelper.play("Ping")
         withAnimation {
             holdState = .holding
-            holdCountdown = holdDuration
+            holdCountdown = Constants.holdDuration
         }
 
         holdTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in

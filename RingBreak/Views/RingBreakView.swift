@@ -72,7 +72,7 @@ struct RingBreakView: View {
     /// Whether the 3D ring should be shown (phases that display the ring)
     private var showsRing: Bool {
         switch gameState.phase {
-        case .notConnected, .ready, .squeezePhase, .pullPhase:
+        case .notConnected, .ready, .squeezePhase, .pullPhase, .paused:
             return true
         case .celebration:
             return false
@@ -84,7 +84,7 @@ struct RingBreakView: View {
         if gameState.phase == .ready && !isCountingDown {
             return 0.85
         }
-        // Same size for countdown and exercise phases to avoid blink
+        // Same size for countdown, exercise, and paused phases to avoid blink
         return 0.9
     }
 
@@ -124,11 +124,19 @@ struct RingBreakView: View {
                     showingCalibration: $showingCalibration,
                     onCancel: { gameState.returnToHome() }
                 )
+            case .paused:
+                RingConDisconnectedOverlay(
+                    gameState: gameState,
+                    onQuit: { gameState.quitFromPause() }
+                )
             case .celebration:
                 CelebrationView(
                     gameState: gameState,
                     onHome: { gameState.returnToHome() },
-                    onDoAnother: { startWithCountdown() }
+                    onDoAnother: {
+                        gameState.returnToHome()
+                        startWithCountdown()
+                    }
                 )
             }
         }
@@ -141,6 +149,15 @@ struct RingBreakView: View {
         }
         .onChange(of: ringConManager.ringConAttached) { _ in
             updateGameState()
+        }
+        .onChange(of: gameState.phase) { newPhase in
+            // Cancel countdown if phase leaves .ready (e.g. disconnect during countdown)
+            if newPhase != .ready && isCountingDown {
+                countdownTimer?.invalidate()
+                countdownTimer = nil
+                isCountingDown = false
+                startCountdown = 0
+            }
         }
     }
 
@@ -155,7 +172,7 @@ struct RingBreakView: View {
         guard !isCountingDown else { return }
 
         isCountingDown = true
-        startCountdown = 3
+        startCountdown = Constants.startCountdown
 
         SoundHelper.play("Tink")
 
