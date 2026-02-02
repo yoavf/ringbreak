@@ -10,12 +10,14 @@ import SwiftUI
 struct OnboardingView: View {
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var notificationService: NotificationService
+    @ObservedObject var ringConManager: RingConManager
     @AppStorage(UserDefaultsKeys.soundsEnabled) private var soundsEnabled = true
     var onComplete: () -> Void
 
     @State private var currentStep = 0
+    @State private var showingCalibration = false
 
-    private let totalSteps = 4
+    private let totalSteps = 5
 
     private var backgroundColor: Color {
         AppColors.background(for: colorScheme)
@@ -28,7 +30,8 @@ struct OnboardingView: View {
                 introStep.tag(0)
                 pairJoyConStep.tag(1)
                 connectRingConStep.tag(2)
-                settingsStep.tag(3)
+                calibrateStep.tag(3)
+                settingsStep.tag(4)
             }
             .tabViewStyle(.automatic)
             .animation(.easeInOut, value: currentStep)
@@ -49,6 +52,9 @@ struct OnboardingView: View {
                 HStack(spacing: 16) {
                     if currentStep > 0 {
                         Button("Back") {
+                            if currentStep == 3 && ringConManager.isCalibrating {
+                                ringConManager.cancelCalibration()
+                            }
                             withAnimation {
                                 currentStep -= 1
                             }
@@ -60,13 +66,19 @@ struct OnboardingView: View {
                     Spacer()
 
                     Button("Skip") {
+                        if currentStep == 3 && ringConManager.isCalibrating {
+                            ringConManager.cancelCalibration()
+                        }
                         completeOnboarding()
                     }
                     .buttonStyle(.plain)
                     .foregroundColor(.secondary)
                     .focusable(false)
 
-                    if currentStep < totalSteps - 1 {
+                    if currentStep == 0
+                        || (currentStep == 1 && ringConManager.isConnected)
+                        || (currentStep == 2 && ringConManager.ringConAttached)
+                        || (currentStep == 3 && ringConManager.calibrationPhase == .complete) {
                         Button("Next") {
                             withAnimation {
                                 currentStep += 1
@@ -74,7 +86,7 @@ struct OnboardingView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .focusable(false)
-                    } else {
+                    } else if currentStep == totalSteps - 1 {
                         Button("Get Started") {
                             completeOnboarding()
                         }
@@ -147,7 +159,7 @@ struct OnboardingView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            onboardingImage("pair-joycon", maxHeight: 280)
+            onboardingImage("pair-joycon", maxHeight: 220)
 
             VStack(spacing: 12) {
                 Text("Pair Joy-Con (R)")
@@ -164,7 +176,7 @@ struct OnboardingView: View {
                             NSWorkspace.shared.open(url)
                         }
                     } label: {
-                        Text("System Settings → Bluetooth")
+                        Text("System Settings \u{2192} Bluetooth")
                             .font(.body)
                     }
                     .buttonStyle(.link)
@@ -172,10 +184,50 @@ struct OnboardingView: View {
                 }
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
+
+                pairStatusIndicator
             }
 
             Spacer()
         }
+        .onAppear {
+            if ringConManager.pairedDeviceStatus != .noPairedDevice {
+                ringConManager.autoConnectIfAvailable()
+            }
+            ringConManager.startScanning()
+        }
+    }
+
+    @ViewBuilder
+    private var pairStatusIndicator: some View {
+        HStack(spacing: 8) {
+            if ringConManager.isConnected {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.system(size: 16))
+                Text("Connected!")
+                    .font(.callout)
+                    .foregroundColor(.green)
+            } else if ringConManager.connectionState == .connecting || ringConManager.connectionState == .scanning {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Connecting...")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+            } else {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Waiting for pairing...")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(ringConManager.isConnected ? Color.green.opacity(0.1) : Color.secondary.opacity(0.1))
+        )
     }
 
     private var connectRingConStep: some View {
@@ -194,11 +246,109 @@ struct OnboardingView: View {
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
+
+                ringConAttachIndicator
             }
 
             Spacer()
         }
     }
+
+    @ViewBuilder
+    private var ringConAttachIndicator: some View {
+        HStack(spacing: 8) {
+            if ringConManager.ringConAttached {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.system(size: 16))
+                Text("Ring-Con Detected!")
+                    .font(.callout)
+                    .foregroundColor(.green)
+            } else {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Waiting for Ring-Con...")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(ringConManager.ringConAttached ? Color.green.opacity(0.1) : Color.secondary.opacity(0.1))
+        )
+    }
+
+    private var calibrateStep: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            if ringConManager.calibrationPhase == .complete {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundColor(.green)
+
+                Text("Calibration Complete!")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                Button("Redo calibration") {
+                    showingCalibration = true
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.accentColor)
+                .font(.caption)
+                .focusable(false)
+            } else {
+                RingConSceneView(flexValue: 0.5)
+                    .frame(width: 160, height: 160)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                    )
+
+                VStack(spacing: 12) {
+                    Text("Calibrate Ring-Con")
+                        .font(.title2)
+                        .fontWeight(.bold)
+
+                    Text("Calibration measures your ring's flex range for accurate tracking.")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+
+                Button("Start Calibration") {
+                    showingCalibration = true
+                }
+                .buttonStyle(.borderedProminent)
+                .focusable(false)
+                .disabled(!ringConManager.isConnected || !ringConManager.ringConAttached)
+
+                if !ringConManager.isConnected || !ringConManager.ringConAttached {
+                    Text("Connect Ring-Con to calibrate")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                } else {
+                    Text("You can calibrate later in Settings")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer()
+        }
+        .sheet(isPresented: $showingCalibration) {
+            CalibrationView(ringConManager: ringConManager) {
+                showingCalibration = false
+            }
+        }
+    }
+
+    // MARK: - Settings Step
 
     private var settingsStep: some View {
         VStack(spacing: 24) {
@@ -323,6 +473,6 @@ struct OnboardingView: View {
 }
 
 #Preview {
-    OnboardingView(onComplete: {})
+    OnboardingView(ringConManager: RingConManager(), onComplete: {})
         .environmentObject(NotificationService.shared)
 }
