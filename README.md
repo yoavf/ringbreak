@@ -6,7 +6,7 @@ A macOS menu bar app for quick exercise breaks using the Nintendo Ring-Con contr
 
 ## Requirements
 
-- macOS 13.0 or later
+- macOS 14.0 or later
 - Nintendo Joy-Con (R) controller
 - Nintendo Ring-Con accessory
 - Bluetooth

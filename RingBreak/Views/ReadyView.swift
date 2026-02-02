@@ -157,14 +157,9 @@ struct ReadyView: View {
                 .padding(.bottom, 8)
 
                 // STATUS - at bottom, fixed size (only when not counting down)
-                HStack(spacing: 4) {
-                    Circle().fill(Color.green).frame(width: 6, height: 6)
-                    Text("Connected")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                .frame(height: 50)
-                .padding(.bottom, 12)
+                DeviceStatusBar(ringConManager: ringConManager)
+                    .frame(height: 50)
+                    .padding(.bottom, 12)
             }
         }
         .onChange(of: ringConManager.flexValue) { newValue in

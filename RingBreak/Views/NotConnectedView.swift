@@ -17,7 +17,12 @@ struct NotConnectedView: View {
 
     @State private var isStreakHovered = false
     @State private var isSettingsHovered = false
-    @Environment(\.colorScheme) private var colorScheme
+    @State private var dotCount = 0
+
+    /// Joy-Con is connected at the HID level (connecting/connected)
+    private var joyConActive: Bool {
+        ringConManager.connectionState == .connected || ringConManager.connectionState == .connecting
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -74,41 +79,40 @@ struct NotConnectedView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Button below the ring
-            Button(action: {
-                #if DEBUG
-                DebugLogger.shared.clear()
-                #endif
-                ringConManager.checkBluetoothAndDeviceStatus()
-                ringConManager.startScanning()
-            }) {
-                HStack(spacing: 8) {
-                    if ringConManager.connectionState == .scanning || ringConManager.connectionState == .connecting {
-                        ProgressView()
-                            .scaleEffect(0.7)
-                            .frame(width: 16, height: 16)
+            // Button below the ring — hidden when Joy-Con is connected (nothing for user to do)
+            if !joyConActive {
+                Button(action: {
+                    #if DEBUG
+                    DebugLogger.shared.clear()
+                    #endif
+                    ringConManager.checkBluetoothAndDeviceStatus()
+                    ringConManager.startScanning()
+                }) {
+                    HStack(spacing: 8) {
+                        if ringConManager.connectionState == .scanning {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .frame(width: 16, height: 16)
+                        }
+                        Text(scanButtonLabel)
                     }
-                    Text(scanButtonLabel)
+                    .frame(width: 160)
                 }
-                .frame(width: 160)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(ringConManager.connectionState == .scanning || ringConManager.bluetoothStatus == .off || ringConManager.bluetoothStatus == .unauthorized)
+                .padding(.bottom, 8)
+            } else {
+                // Spacer to keep layout stable when button is hidden
+                Color.clear
+                    .frame(height: 44)
+                    .padding(.bottom, 8)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .disabled(ringConManager.connectionState == .scanning || ringConManager.connectionState == .connecting || ringConManager.bluetoothStatus == .off || ringConManager.bluetoothStatus == .unauthorized)
-            .padding(.bottom, 8)
 
-            // STATUS - at bottom, fixed size (hidden when button already shows state)
+            // STATUS - at bottom, fixed size
             VStack(spacing: 4) {
-                if ringConManager.connectionState != .scanning && ringConManager.connectionState != .connecting {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(statusColor)
-                            .frame(width: 6, height: 6)
-                        Text(statusText)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                }
+                DeviceStatusBar(ringConManager: ringConManager)
+
                 if let error = ringConManager.lastError {
                     Text(error)
                         .font(.caption2)
@@ -153,19 +157,52 @@ struct NotConnectedView: View {
                 Text("Turn on Bluetooth")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-            } else if ringConManager.pairedDeviceStatus == .pairedAndConnected {
-                Image(systemName: "checkmark.circle")
-                    .font(.title)
-                    .foregroundColor(.green)
-                Text("Joy-Con Ready")
+            } else if ringConManager.connectionState == .connecting {
+                // MCU initialization in progress — we found the Joy-Con
+                HStack(spacing: 0) {
+                    Text("Setting up Ring-Con")
+                    Text(".").opacity(dotCount >= 0 ? 1 : 0)
+                    Text(".").opacity(dotCount >= 1 ? 1 : 0)
+                    Text(".").opacity(dotCount >= 2 ? 1 : 0)
+                }
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .onAppear { startDotAnimation() }
+                .onDisappear { dotCount = 0 }
+            } else if ringConManager.connectionState == .connected && !ringConManager.ringConAttached {
+                // MCU ready, scanning for Ring-Con presence
+                HStack(spacing: 0) {
+                    Text("Looking for Ring-Con")
+                    Text(".").opacity(dotCount >= 0 ? 1 : 0)
+                    Text(".").opacity(dotCount >= 1 ? 1 : 0)
+                    Text(".").opacity(dotCount >= 2 ? 1 : 0)
+                }
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .onAppear { startDotAnimation() }
+                .onDisappear { dotCount = 0 }
+                Text("Make sure Joy-Con is inserted in Ring-Con")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            } else if ringConManager.lastError != nil {
+                // Connection failed — show error with guidance
+                Text("Connection failed")
                     .font(.subheadline)
+                    .foregroundColor(.secondary)
+                Text("Press Connect to try again")
+                    .font(.caption)
                     .foregroundColor(.secondary)
             } else if ringConManager.pairedDeviceStatus == .pairedNotConnected {
                 Text("Press any button on Joy-Con")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+            } else if ringConManager.pairedDeviceStatus == .pairedAndConnected {
+                Text("Joy-Con detected")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
             } else {
-                Text("Pair Joy-Con (R) in\nSystem Settings → Bluetooth")
+                Text("Pair Joy-Con (R) in\nSystem Settings \u{2192} Bluetooth")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -173,33 +210,28 @@ struct NotConnectedView: View {
         }
     }
 
+    private func startDotAnimation() {
+        dotCount = 0
+        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
+            Task { @MainActor in
+                guard joyConActive else {
+                    timer.invalidate()
+                    return
+                }
+                dotCount = (dotCount + 1) % 3
+            }
+        }
+    }
+
     private var scanButtonLabel: String {
         switch ringConManager.connectionState {
         case .scanning: return "Scanning..."
-        case .connecting: return "Connecting..."
         default:
             if ringConManager.pairedDeviceStatus == .pairedAndConnected {
                 return "Connect"
             } else {
                 return "Scan for Joy-Con"
             }
-        }
-    }
-
-    private var statusColor: Color {
-        switch ringConManager.connectionState {
-        case .connected: return .green
-        case .scanning, .connecting: return .orange
-        default: return .red
-        }
-    }
-
-    private var statusText: String {
-        switch ringConManager.connectionState {
-        case .connected: return "Connected"
-        case .scanning: return "Scanning..."
-        case .connecting: return "Connecting..."
-        default: return "Not connected"
         }
     }
 }

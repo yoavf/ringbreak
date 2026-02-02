@@ -75,20 +75,15 @@ struct OnboardingView: View {
                     .foregroundColor(.secondary)
                     .focusable(false)
 
-                    if currentStep == 0
-                        || (currentStep == 1 && ringConManager.isConnected)
-                        || (currentStep == 2 && ringConManager.ringConAttached)
-                        || (currentStep == 3 && ringConManager.calibrationPhase == .complete) {
-                        Button("Next") {
-                            withAnimation {
-                                currentStep += 1
-                            }
+                    if currentStep == totalSteps - 1 {
+                        Button("Get Started") {
+                            advancePrimaryAction()
                         }
                         .buttonStyle(.borderedProminent)
                         .focusable(false)
-                    } else if currentStep == totalSteps - 1 {
-                        Button("Get Started") {
-                            completeOnboarding()
+                    } else if canAdvance {
+                        Button("Next") {
+                            advancePrimaryAction()
                         }
                         .buttonStyle(.borderedProminent)
                         .focusable(false)
@@ -100,6 +95,35 @@ struct OnboardingView: View {
         }
         .frame(width: 420, height: 620)
         .background(backgroundColor)
+        .focusable()
+        .focusEffectDisabled()
+        .onKeyPress(.space) {
+            if canAdvance {
+                advancePrimaryAction()
+                return .handled
+            }
+            return .ignored
+        }
+    }
+
+    private var canAdvance: Bool {
+        if currentStep == totalSteps - 1 {
+            return true
+        }
+        return currentStep == 0
+            || (currentStep == 1 && ringConManager.isConnected)
+            || (currentStep == 2 && ringConManager.ringConAttached)
+            || (currentStep == 3 && ringConManager.calibrationPhase == .complete)
+    }
+
+    private func advancePrimaryAction() {
+        if currentStep == totalSteps - 1 {
+            completeOnboarding()
+        } else {
+            withAnimation {
+                currentStep += 1
+            }
+        }
     }
 
     private func completeOnboarding() {
@@ -116,8 +140,9 @@ struct OnboardingView: View {
                 .aspectRatio(contentMode: fill ? .fill : .fit)
                 .frame(height: fill ? maxHeight : nil, alignment: .center)
                 .frame(maxHeight: maxHeight)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: fill ? 0 : 16))
+                .shadow(color: fill ? .clear : .black.opacity(0.1), radius: 8, y: 4)
         } else {
             // Fallback placeholder
             RoundedRectangle(cornerRadius: 16)
@@ -159,7 +184,7 @@ struct OnboardingView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            onboardingImage("pair-joycon", maxHeight: 220)
+            onboardingImage("pair-joycon", maxHeight: 220, fill: true)
 
             VStack(spacing: 12) {
                 Text("Pair Joy-Con (R)")
@@ -264,6 +289,12 @@ struct OnboardingView: View {
                 Text("Ring-Con Detected!")
                     .font(.callout)
                     .foregroundColor(.green)
+            } else if ringConManager.connectionState == .connecting {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Setting up Ring-Con...")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
             } else {
                 ProgressView()
                     .controlSize(.small)

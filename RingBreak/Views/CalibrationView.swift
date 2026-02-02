@@ -119,7 +119,7 @@ struct CalibrationView: View {
                         .buttonStyle(.borderedProminent)
                     }
                 } else if ringConManager.calibrationPhase == .complete {
-                    VStack(spacing: 8) {
+                    VStack(spacing: 20) {
                         Button("Done") {
                             onClose()
                         }

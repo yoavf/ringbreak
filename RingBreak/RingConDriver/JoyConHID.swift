@@ -477,16 +477,13 @@ class JoyConHID {
                 if result == kIOReturnSuccess {
                     let data = Array(UnsafeBufferPointer(start: report, count: reportLength))
 
-                    // Log the report
-                    Task { @MainActor in
-                        DebugLogger.shared.logHIDReport(data)
-                    }
-
+                    // Single dispatch to main thread for both logging and processing
                     DispatchQueue.main.async {
+                        DebugLogger.shared.logHIDReport(data)
                         hid.delegate?.joyConHID(hid, didReceiveInputReport: data)
                     }
                 } else {
-                    Task { @MainActor in
+                    DispatchQueue.main.async {
                         DebugLogger.shared.logError("HID report callback error: \(result)")
                     }
                 }

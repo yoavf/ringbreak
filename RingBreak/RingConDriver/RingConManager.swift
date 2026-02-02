@@ -73,6 +73,10 @@ class RingConManager: NSObject, ObservableObject {
     /// Angular velocity magnitude (deg/s)
     @Published private(set) var angularVelocityMagnitude: Double = 0
 
+    /// Enable IMU processing only when actively needed (exercise/calibration).
+    /// Ring-Con flex detection runs regardless.
+    var imuProcessingEnabled: Bool = false
+
     // MARK: - Computed Properties
 
     /// Whether a Joy-Con is connected
@@ -369,6 +373,8 @@ class RingConManager: NSObject, ObservableObject {
         ringConPresentCount = 0
         ringConRecoveryTask?.cancel()
         ringConRecoveryTask = nil
+        fallbackConnectedTask?.cancel()
+        fallbackConnectedTask = nil
         cancelCalibration()
         hasCalibration = false
         isCalibrating = false
@@ -400,6 +406,7 @@ class RingConManager: NSObject, ObservableObject {
         // Reset Ring-Con state
         ringConAttached = false
         mcuInitialized = false
+        connectionState = .connecting
         ringConMissedCount = 0
         ringConPresentCount = 0
         ringConRecoveryTask?.cancel()
@@ -429,6 +436,18 @@ class RingConManager: NSObject, ObservableObject {
                 // Wait for MCU init to complete before next attempt
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
             }
+        }
+    }
+
+    private var fallbackConnectedTask: Task<Void, Never>?
+
+    /// After MCU init, wait briefly for Ring-Con detection before showing "Looking for Ring-Con..."
+    private func scheduleFallbackConnected() {
+        fallbackConnectedTask?.cancel()
+        fallbackConnectedTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard let self = self, self.connectionState == .connecting else { return }
+            self.connectionState = .connected
         }
     }
 
@@ -526,11 +545,11 @@ class RingConManager: NSObject, ObservableObject {
 
             mcuInitialized = true
             mcuReportCount = 0  // Reset so we get fresh logging after init
-            connectionState = .connected
-            lastError = nil  // Clear any previous error on successful MCU init
+            // Stay in .connecting — transition to .connected when Ring-Con is detected
+            // or after a fallback delay (to show "Looking for Ring-Con..." if not found)
+            lastError = nil
             DebugLogger.shared.logMCUStep("MCU initialization complete", success: true)
-
-            // Ring-Con attachment will be detected via input reports
+            scheduleFallbackConnected()
 
         } catch {
             DebugLogger.shared.logMCUStep("MCU init failed: \(error.localizedDescription)", success: false)
@@ -772,7 +791,9 @@ class RingConManager: NSObject, ObservableObject {
             return
         }
 
-        updateIMU(from: data)
+        if imuProcessingEnabled || calibrationInProgress {
+            updateIMU(from: data)
+        }
 
         // Log first few reports after init for debugging
         if mcuReportCount <= 5 {
@@ -792,6 +813,11 @@ class RingConManager: NSObject, ObservableObject {
                 if ringConPresentCount >= ringConPresentThreshold {
                     ringConAttached = true
                     ringConPresentCount = 0
+                    fallbackConnectedTask?.cancel()
+                    fallbackConnectedTask = nil
+                    if connectionState == .connecting {
+                        connectionState = .connected
+                    }
                     ringConRecoveryTask?.cancel()
                     ringConRecoveryTask = nil
                     lastError = nil
@@ -1128,8 +1154,9 @@ class RingConManager: NSObject, ObservableObject {
 
 extension RingConManager: JoyConHIDDelegate {
     nonisolated func joyConHID(_ hid: JoyConHID, didReceiveInputReport data: [UInt8]) {
-        Task { @MainActor [weak self] in
-            self?.processInputReport(data)
+        // Called from DispatchQueue.main.async in JoyConHID — already on main thread
+        MainActor.assumeIsolated {
+            self.processInputReport(data)
         }
     }
 

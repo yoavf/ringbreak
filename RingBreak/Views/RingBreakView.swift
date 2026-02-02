@@ -161,6 +161,13 @@ struct RingBreakView: View {
                 isCountingDown = false
                 startCountdown = 0
             }
+            // Only run IMU processing during active exercise phases
+            ringConManager.imuProcessingEnabled = (newPhase == .squeezePhase || newPhase == .pullPhase)
+        }
+        .onChange(of: showingCalibration) { calibrating in
+            if calibrating {
+                ringConManager.imuProcessingEnabled = true
+            }
         }
     }
 
