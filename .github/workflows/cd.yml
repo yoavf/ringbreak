@@ -171,47 +171,12 @@ jobs:
         run: |
           mv "build/${APP_NAME}.dmg" "build/${APP_NAME}-${{ steps.version.outputs.version }}.dmg"
 
-      - name: Generate release notes
-        id: release_notes
-        run: |
-          # Get commits since last tag
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-
-          if [ -n "$PREVIOUS_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"- %s" $PREVIOUS_TAG..HEAD)
-          else
-            COMMITS=$(git log --pretty=format:"- %s" -10)
-          fi
-
-          # Write to file for multiline support
-          cat << EOF > release_notes.md
-          ## What's New in v${{ steps.version.outputs.version }}
-
-          $COMMITS
-
-          ---
-
-          ### Installation
-
-          1. Download \`${APP_NAME}-${{ steps.version.outputs.version }}.dmg\`
-          2. Open the DMG file
-          3. Drag Ring Break to your Applications folder
-          4. Launch Ring Break from Applications
-
-          ### Requirements
-
-          - macOS 13.0 (Ventura) or later
-          - Nintendo Joy-Con (R) controller
-          - Nintendo Ring-Con accessory
-          - Bluetooth connectivity
-          EOF
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2.5.0
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: Ring Break v${{ steps.version.outputs.version }}
-          body_path: release_notes.md
+          generate_release_notes: true
           draft: false
           prerelease: ${{ contains(steps.version.outputs.version, '-') }}
           files: |
