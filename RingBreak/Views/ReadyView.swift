@@ -142,7 +142,9 @@ struct ReadyView: View {
                         }
                     }
 
-                    Button(action: { startWithCountdown() }) {
+                    Button {
+                        startWithCountdown()
+                    } label: {
                         Text("Start")
                             .font(.system(size: 18, weight: .semibold))
                             .frame(width: 140)

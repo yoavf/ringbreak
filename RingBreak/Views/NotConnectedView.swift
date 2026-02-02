@@ -82,13 +82,13 @@ struct NotConnectedView: View {
 
             // Button below the ring — hidden when Joy-Con is connected (nothing for user to do)
             if !joyConActive {
-                Button(action: {
+                Button {
                     #if DEBUG
                     DebugLogger.shared.clear()
                     #endif
                     ringConManager.checkBluetoothAndDeviceStatus()
                     ringConManager.startScanning()
-                }) {
+                } label: {
                     HStack(spacing: 8) {
                         if ringConManager.connectionState == .scanning {
                             ProgressView()
@@ -101,7 +101,11 @@ struct NotConnectedView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled(ringConManager.connectionState == .scanning || ringConManager.bluetoothStatus == .off || ringConManager.bluetoothStatus == .unauthorized)
+                .disabled(
+                    ringConManager.connectionState == .scanning
+                    || ringConManager.bluetoothStatus == .off
+                    || ringConManager.bluetoothStatus == .unauthorized
+                )
                 .padding(.bottom, 8)
             } else {
                 // Spacer to keep layout stable when button is hidden

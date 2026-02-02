@@ -188,7 +188,10 @@ class RingConManager: NSObject, ObservableObject {
     /// Listen for Bluetooth device connections
     private func startBluetoothConnectionListener() {
         // Register for device connection notifications
-        bluetoothConnectionObserver = IOBluetoothDevice.register(forConnectNotifications: self, selector: #selector(bluetoothDeviceConnected(_:device:)))
+        bluetoothConnectionObserver = IOBluetoothDevice.register(
+            forConnectNotifications: self,
+            selector: #selector(bluetoothDeviceConnected(_:device:))
+        )
     }
 
     @objc nonisolated private func bluetoothDeviceConnected(_ notification: IOBluetoothUserNotification, device: IOBluetoothDevice) {
@@ -802,7 +805,9 @@ class RingConManager: NSObject, ObservableObject {
         if mcuReportCount <= 5 {
             let relevantBytes = Array(data[35..<min(50, data.count)])
             let hex = relevantBytes.map { String(format: "%02X", $0) }.joined(separator: " ")
-            DebugLogger.shared.log("Bytes [35-49]: \(hex) | byte40=0x\(String(format: "%02X", data[40])) byte42=0x\(String(format: "%02X", data[42]))", category: .mcu)
+            let b40 = String(format: "%02X", data[40])
+            let b42 = String(format: "%02X", data[42])
+            DebugLogger.shared.log("Bytes [35-49]: \(hex) | byte40=0x\(b40) byte42=0x\(b42)", category: .mcu)
         }
 
         let ringConByte = data[40]
@@ -825,7 +830,9 @@ class RingConManager: NSObject, ObservableObject {
                     ringConRecoveryTask = nil
                     lastError = nil
                     joyConState.mcuState = .ringConMode
-                    DebugLogger.shared.log("Ring-Con DETECTED! flex=0x\(String(format: "%02X", ringConByte)) (\(ringConByte)) presence=0x\(String(format: "%02X", data[42]))", category: .ringcon)
+                    let flexHex = String(format: "%02X", ringConByte)
+                    let presHex = String(format: "%02X", data[42])
+                    DebugLogger.shared.log("Ring-Con DETECTED! flex=0x\(flexHex) (\(ringConByte)) presence=0x\(presHex)", category: .ringcon)
                 }
             }
 
@@ -837,14 +844,19 @@ class RingConManager: NSObject, ObservableObject {
                 ringConMissedCount += 1
                 if ringConMissedCount >= ringConMissedThreshold {
                     ringConAttached = false
-                    DebugLogger.shared.log("Ring-Con DETACHED (byte 42 != 0x20 for \(ringConMissedThreshold) consecutive reports)", category: .ringcon)
+                    DebugLogger.shared.log(
+                        "Ring-Con DETACHED (byte 42 != 0x20 for \(ringConMissedThreshold) consecutive reports)",
+                        category: .ringcon
+                    )
                     ringConMissedCount = 0
                     scheduleRingConRecovery()
                 }
             }
             // Log periodically when Ring-Con not detected
             if mcuReportCount % 500 == 0 {
-                DebugLogger.shared.log("Ring-Con absent: byte40=0x\(String(format: "%02X", ringConByte)) byte42=0x\(String(format: "%02X", data[42]))", category: .mcu)
+                let b40Hex = String(format: "%02X", ringConByte)
+                let b42Hex = String(format: "%02X", data[42])
+                DebugLogger.shared.log("Ring-Con absent: byte40=0x\(b40Hex) byte42=0x\(b42Hex)", category: .mcu)
             }
         }
     }
@@ -892,7 +904,9 @@ class RingConManager: NSObject, ObservableObject {
 
         // Log changes (but not every single one - only significant changes)
         if oldByte != flexByte {
-            DebugLogger.shared.log("Flex: 0x\(String(format: "%02X", flexByte)) (\(flexByte)) -> \(String(format: "%.1f%%", flexValue * 100))", category: .ringcon)
+            let hexVal = String(format: "%02X", flexByte)
+            let pctVal = String(format: "%.1f%%", flexValue * 100)
+            DebugLogger.shared.log("Flex: 0x\(hexVal) (\(flexByte)) -> \(pctVal)", category: .ringcon)
         }
     }
 
@@ -1114,7 +1128,8 @@ class RingConManager: NSObject, ObservableObject {
     }
 
     private func readSensorCalibration(offset: UInt32, length: Int) async throws -> [UInt8]? {
-        guard let response = try await sendSubcommandAndWait(.spiFlashRead, argument: spiReadArgument(offset: offset, length: length), expected: .spiFlashRead) else {
+        let arg = spiReadArgument(offset: offset, length: length)
+        guard let response = try await sendSubcommandAndWait(.spiFlashRead, argument: arg, expected: .spiFlashRead) else {
             return nil
         }
         guard response.count >= 0x14 + length else { return nil }

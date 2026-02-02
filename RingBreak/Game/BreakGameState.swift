@@ -65,7 +65,7 @@ class BreakGameState: ObservableObject {
     // MARK: - Published Properties
 
     @Published private(set) var phase: BreakGamePhase = .notConnected
-    @Published private(set) var pausedFromPhase: BreakGamePhase? = nil
+    @Published private(set) var pausedFromPhase: BreakGamePhase?
     private var pauseDebounceTask: Task<Void, Never>?
     @Published private(set) var currentReps: Int = 0
     @Published private(set) var targetReps: Int = Constants.targetReps

@@ -174,7 +174,7 @@ class NotificationService: NSObject, ObservableObject {
         let content = UNMutableNotificationContent()
         content.title = "Time for a Ring Break!"
         content.body = "Take a quick stretch break with your Ring-Con."
-        content.sound = .default    
+        content.sound = .default
         content.categoryIdentifier = "REMINDER_CATEGORY"
 
         let trigger = UNTimeIntervalNotificationTrigger(

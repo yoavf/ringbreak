@@ -470,7 +470,7 @@ class JoyConHID {
             device,
             &reportBuffer,
             reportBuffer.count,
-            { context, result, sender, type, reportID, report, reportLength in
+            { context, result, _, _, _, report, reportLength in
                 guard let context = context else { return }
                 let hid = Unmanaged<JoyConHID>.fromOpaque(context).takeUnretainedValue()
 
