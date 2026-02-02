@@ -15,7 +15,7 @@ class DebugLogger: ObservableObject {
     static let shared = DebugLogger()
 
     /// Maximum number of log entries to keep in memory
-    private let maxEntries = 500
+    private var maxEntries: Int { Constants.maxLogEntries }
 
     /// All log entries
     @Published private(set) var entries: [DebugEntry] = []

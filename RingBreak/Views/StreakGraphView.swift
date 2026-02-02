@@ -136,7 +136,7 @@ struct StreakGraphView: View {
     }
 
     private var graphView: some View {
-        let history = gameState.getRecentHistory(days: 7)
+        let history = gameState.getRecentHistory()
         let maxSessions = max(history.map { $0.reps }.max() ?? 5, 5) + 2
 
         return VStack(spacing: 0) {

@@ -64,6 +64,41 @@ enum Constants {
     /// Minimum raw flex range (pull or squeeze) for calibration to be considered valid
     static let calibrationMinRange: Int = 2
 
+    // MARK: - Difficulty
+
+    /// Target flex thresholds per difficulty (fraction of calibrated range the user must reach)
+    static let easyTargetThreshold: Double = 0.65
+    static let mediumTargetThreshold: Double = 0.75
+    static let hardTargetThreshold: Double = 0.80
+
+    /// Hold tolerance per difficulty (how far flex can drop below target and still count)
+    static let easyHoldTolerance: Double = 0.18
+    static let mediumHoldTolerance: Double = 0.13
+    static let hardHoldTolerance: Double = 0.08
+
+    // MARK: - Connection
+
+    /// Maximum auto-connect retry attempts after a paired device is found
+    static let autoConnectMaxAttempts: Int = 3
+
+    // MARK: - Gyro Stability
+
+    /// Consecutive stable gyro samples required before accepting bias
+    static let stableGyroSampleTarget: Int = 10
+
+    /// Angular velocity (deg/s) below which the gyro is considered stable
+    static let stableGyroThreshold: Double = 5.0
+
+    // MARK: - History
+
+    /// Default number of days shown in the streak graph / recent history
+    static let historyDays: Int = 7
+
+    // MARK: - Debug
+
+    /// Maximum log entries kept in memory by DebugLogger
+    static let maxLogEntries: Int = 500
+
     // MARK: - Timers
 
     /// Menubar update interval in seconds

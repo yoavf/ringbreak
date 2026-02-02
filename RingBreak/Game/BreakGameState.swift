@@ -35,18 +35,18 @@ enum GameDifficulty: String, CaseIterable, Identifiable {
     /// Target flex value threshold to reach for a successful rep
     var targetThreshold: Double {
         switch self {
-        case .easy: return 0.65
-        case .medium: return 0.75
-        case .hard: return 0.80
+        case .easy: return Constants.easyTargetThreshold
+        case .medium: return Constants.mediumTargetThreshold
+        case .hard: return Constants.hardTargetThreshold
         }
     }
 
     /// How much the flex value can drop while holding and still count
     var holdTolerance: Double {
         switch self {
-        case .easy: return 0.18
-        case .medium: return 0.13
-        case .hard: return 0.08
+        case .easy: return Constants.easyHoldTolerance
+        case .medium: return Constants.mediumHoldTolerance
+        case .hard: return Constants.hardHoldTolerance
         }
     }
 
@@ -293,7 +293,7 @@ class BreakGameState: ObservableObject {
     }
 
     /// Returns rep counts for the last N days (including today), sorted chronologically
-    func getRecentHistory(days: Int = 7) -> [(date: Date, reps: Int)] {
+    func getRecentHistory(days: Int = Constants.historyDays) -> [(date: Date, reps: Int)] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
 

@@ -191,7 +191,7 @@ class RingConManager: NSObject, ObservableObject {
 
     /// Try to connect with retries, giving the Bluetooth stack time to settle
     private func autoConnectWithRetry() async {
-        let maxAttempts = 3
+        let maxAttempts = Constants.autoConnectMaxAttempts
         let delays: [UInt64] = [1_000_000_000, 1_500_000_000, 2_000_000_000]  // 1s, 1.5s, 2s
 
         for attempt in 0..<maxAttempts {
@@ -741,8 +741,8 @@ class RingConManager: NSObject, ObservableObject {
     private let gyroBiasUpdateAlpha = 0.2
     private var lastStableGyro = Vector3.zero
     private var stableGyroSamples = 0
-    private let stableGyroSampleTarget = 10
-    private let stableGyroThreshold = 5.0
+    private var stableGyroSampleTarget: Int { Constants.stableGyroSampleTarget }
+    private var stableGyroThreshold: Double { Constants.stableGyroThreshold }
     private var imuLogCounter = 0
     private var pendingSubcommandID: UInt8?
     private var pendingSubcommandContinuation: CheckedContinuation<[UInt8], Error>?
