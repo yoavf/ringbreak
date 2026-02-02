@@ -137,7 +137,10 @@ struct NotConnectedView: View {
     @ViewBuilder
     private var connectionInstructionsView: some View {
         VStack(spacing: 8) {
-            if ringConManager.bluetoothStatus == .unauthorized {
+            if ringConManager.bluetoothStatus == .unknown {
+                // Waiting for Bluetooth authorization/state — show nothing
+                EmptyView()
+            } else if ringConManager.bluetoothStatus == .unauthorized {
                 Image(systemName: "hand.raised.circle")
                     .font(.title)
                     .foregroundColor(.red)

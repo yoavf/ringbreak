@@ -143,18 +143,33 @@ class RingConManager: NSObject, ObservableObject {
     private func requestBluetoothPermissionIfNeeded() {
         // Always create a CBCentralManager to monitor Bluetooth state changes
         // This also triggers the permission prompt if not yet determined
-        centralManagerDelegate = BluetoothPermissionDelegate { [weak self] in
+        centralManagerDelegate = BluetoothPermissionDelegate { [weak self] state in
             Task { @MainActor in
-                self?.handleBluetoothStateChange()
+                self?.handleBluetoothStateChange(state)
             }
         }
         centralManager = CBCentralManager(delegate: centralManagerDelegate, queue: .main)
     }
 
     /// Handle Bluetooth state changes (on/off, permission changes)
-    private func handleBluetoothStateChange() {
+    private func handleBluetoothStateChange(_ state: CBManagerState) {
         let previousStatus = bluetoothStatus
-        checkBluetoothAndDeviceStatus()
+
+        // Use CBCentralManager state directly — IOBluetoothHostController is
+        // unreliable in sandboxed builds and can report OFF on launch
+        switch state {
+        case .poweredOn:
+            bluetoothStatus = .on
+        case .poweredOff:
+            bluetoothStatus = .off
+        case .unauthorized:
+            bluetoothStatus = .unauthorized
+        default:
+            bluetoothStatus = .unknown
+        }
+
+        // Update paired device status
+        checkPairedDeviceStatus()
 
         // If Bluetooth was turned off while connected, disconnect
         if bluetoothStatus == .off && previousStatus != .off && isConnected {
@@ -267,16 +282,17 @@ class RingConManager: NSObject, ObservableObject {
         #endif
     }
 
-    /// Check Bluetooth authorization, power state and paired devices
+    /// Check Bluetooth authorization, power state and paired devices.
+    /// Bluetooth power state is determined by CBCentralManager via its delegate;
+    /// this method updates authorization and paired device status.
     func checkBluetoothAndDeviceStatus() {
-        // Check Bluetooth authorization first
+        // Check Bluetooth authorization
         let authorization = CBCentralManager.authorization
         switch authorization {
         case .denied, .restricted:
             bluetoothStatus = .unauthorized
-            return
         case .notDetermined:
-            // Will be determined when we try to use Bluetooth
+            // Leave as .unknown until CBCentralManager delegate fires
             break
         case .allowedAlways:
             break
@@ -284,23 +300,11 @@ class RingConManager: NSObject, ObservableObject {
             break
         }
 
-        // Check Bluetooth power state using IOBluetooth
-        // IOBluetoothHostController gives us the system Bluetooth status
-        if let controller = IOBluetoothHostController.default() {
-            let powerState = controller.powerState
-            switch powerState {
-            case kBluetoothHCIPowerStateON:
-                bluetoothStatus = .on
-            case kBluetoothHCIPowerStateOFF:
-                bluetoothStatus = .off
-            default:
-                bluetoothStatus = .unknown
-            }
-        } else {
-            bluetoothStatus = .unknown
-        }
+        checkPairedDeviceStatus()
+    }
 
-        // Check for paired/connected Joy-Con devices
+    /// Check for paired/connected Joy-Con devices
+    private func checkPairedDeviceStatus() {
         let connectedDevices = JoyConHID.listConnectedDevices()
         let hasJoyCon = connectedDevices.contains { $0.productID == NintendoHID.productIDJoyConR }
 
@@ -308,7 +312,6 @@ class RingConManager: NSObject, ObservableObject {
             pairedDeviceStatus = .pairedAndConnected
         } else {
             // Check paired devices (even if not currently connected)
-            // This requires checking the Bluetooth paired devices list
             // Note: Only check devices that have a valid address to avoid "No name or address" warnings
             let pairedDevices = IOBluetoothDevice.pairedDevices() as? [IOBluetoothDevice] ?? []
             let hasPairedJoyCon = pairedDevices.contains { device in
@@ -1178,9 +1181,9 @@ extension RingConManager: JoyConHIDDelegate {
 
 /// Delegate to monitor Bluetooth state changes (permission, power on/off)
 class BluetoothPermissionDelegate: NSObject, CBCentralManagerDelegate {
-    private let onStateChange: () -> Void
+    private let onStateChange: (CBManagerState) -> Void
 
-    init(onStateChange: @escaping () -> Void) {
+    init(onStateChange: @escaping (CBManagerState) -> Void) {
         self.onStateChange = onStateChange
         super.init()
     }
@@ -1188,6 +1191,6 @@ class BluetoothPermissionDelegate: NSObject, CBCentralManagerDelegate {
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         // Called when Bluetooth state changes (power on/off, permission granted/denied)
         // States: .poweredOn, .poweredOff, .unauthorized, .unsupported, .resetting, .unknown
-        self.onStateChange()
+        self.onStateChange(central.state)
     }
 }
