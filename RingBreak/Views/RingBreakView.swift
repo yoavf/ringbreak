@@ -26,6 +26,7 @@ struct RingBreakView: View {
     // Pre-exercise countdown (shared with ReadyView)
     @State private var startCountdown: Int = 0
     @State private var isCountingDown = false
+    @State private var countdownTimer: Timer?
 
     private var backgroundColor: Color {
         AppColors.background(for: colorScheme)
@@ -158,8 +159,13 @@ struct RingBreakView: View {
 
         SoundHelper.play("Tink")
 
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak gameState] timer in
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak gameState] timer in
             Task { @MainActor in
+                guard isCountingDown else {
+                    timer.invalidate()
+                    countdownTimer = nil
+                    return
+                }
                 if startCountdown > 1 {
                     withAnimation {
                         startCountdown -= 1
@@ -167,6 +173,7 @@ struct RingBreakView: View {
                     SoundHelper.play("Tink")
                 } else {
                     timer.invalidate()
+                    countdownTimer = nil
                     SoundHelper.play("Glass")
                     withAnimation {
                         isCountingDown = false
