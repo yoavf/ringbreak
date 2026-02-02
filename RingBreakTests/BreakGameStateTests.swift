@@ -109,7 +109,7 @@ final class BreakGameStateTests: XCTestCase {
         gameState.updateConnectionStatus(isConnected: true, ringConAttached: false)
 
         // Wait for debounce (1.5s + margin)
-        try? await Task.sleep(nanoseconds: 1_800_000_000)
+        try? await Task.sleep(nanoseconds: UInt64((Constants.pauseDebounceDuration + 0.3) * 1_000_000_000))
 
         XCTAssertEqual(gameState.phase, .paused)
         XCTAssertEqual(gameState.pausedFromPhase, .squeezePhase)
@@ -123,14 +123,14 @@ final class BreakGameStateTests: XCTestCase {
         gameState.updateConnectionStatus(isConnected: true, ringConAttached: false)
 
         // Wait a bit but less than debounce
-        try? await Task.sleep(nanoseconds: 500_000_000)
+        try? await Task.sleep(nanoseconds: UInt64(Constants.pauseDebounceDuration * 0.3 * 1_000_000_000))
 
         // Reattach before debounce fires
         gameState.updateConnectionStatus(isConnected: true, ringConAttached: true)
         XCTAssertEqual(gameState.phase, .squeezePhase)
 
         // Wait past debounce time to confirm it was cancelled
-        try? await Task.sleep(nanoseconds: 1_500_000_000)
+        try? await Task.sleep(nanoseconds: UInt64((Constants.pauseDebounceDuration + 0.3) * 1_000_000_000))
         XCTAssertEqual(gameState.phase, .squeezePhase)
     }
 
@@ -140,7 +140,7 @@ final class BreakGameStateTests: XCTestCase {
 
         // Pause via debounce
         gameState.updateConnectionStatus(isConnected: true, ringConAttached: false)
-        try? await Task.sleep(nanoseconds: 1_800_000_000)
+        try? await Task.sleep(nanoseconds: UInt64((Constants.pauseDebounceDuration + 0.3) * 1_000_000_000))
         XCTAssertEqual(gameState.phase, .paused)
         XCTAssertEqual(gameState.pausedFromPhase, .squeezePhase)
 
@@ -158,7 +158,7 @@ final class BreakGameStateTests: XCTestCase {
 
         // Pause
         gameState.updateConnectionStatus(isConnected: true, ringConAttached: false)
-        try? await Task.sleep(nanoseconds: 1_800_000_000)
+        try? await Task.sleep(nanoseconds: UInt64((Constants.pauseDebounceDuration + 0.3) * 1_000_000_000))
         XCTAssertEqual(gameState.phase, .paused)
         XCTAssertEqual(gameState.pausedFromPhase, .pullPhase)
 
@@ -173,7 +173,7 @@ final class BreakGameStateTests: XCTestCase {
 
         // Pause
         gameState.updateConnectionStatus(isConnected: true, ringConAttached: false)
-        try? await Task.sleep(nanoseconds: 1_800_000_000)
+        try? await Task.sleep(nanoseconds: UInt64((Constants.pauseDebounceDuration + 0.3) * 1_000_000_000))
         XCTAssertEqual(gameState.phase, .paused)
 
         // Full Bluetooth disconnect
@@ -201,7 +201,7 @@ final class BreakGameStateTests: XCTestCase {
 
         // Pause
         gameState.updateConnectionStatus(isConnected: true, ringConAttached: false)
-        try? await Task.sleep(nanoseconds: 1_800_000_000)
+        try? await Task.sleep(nanoseconds: UInt64((Constants.pauseDebounceDuration + 0.3) * 1_000_000_000))
         XCTAssertEqual(gameState.phase, .paused)
 
         // Another detach while already paused
@@ -231,7 +231,7 @@ final class BreakGameStateTests: XCTestCase {
 
         // Pause
         gameState.updateConnectionStatus(isConnected: true, ringConAttached: false)
-        try? await Task.sleep(nanoseconds: 1_800_000_000)
+        try? await Task.sleep(nanoseconds: UInt64((Constants.pauseDebounceDuration + 0.3) * 1_000_000_000))
         XCTAssertEqual(gameState.phase, .paused)
 
         gameState.quitFromPause()
@@ -384,7 +384,7 @@ final class BreakGameStateTests: XCTestCase {
         XCTAssertEqual(gameState.phase, .squeezePhase)
 
         // Wait for debounce
-        try? await Task.sleep(nanoseconds: 1_800_000_000)
+        try? await Task.sleep(nanoseconds: UInt64((Constants.pauseDebounceDuration + 0.3) * 1_000_000_000))
         XCTAssertEqual(gameState.phase, .paused)
     }
 

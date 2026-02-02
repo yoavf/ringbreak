@@ -127,7 +127,10 @@ struct RingBreakView: View {
             case .paused:
                 RingConDisconnectedOverlay(
                     gameState: gameState,
-                    onQuit: { gameState.quitFromPause() }
+                    onQuit: {
+                        gameState.quitFromPause()
+                        updateGameState()
+                    }
                 )
             case .celebration:
                 CelebrationView(

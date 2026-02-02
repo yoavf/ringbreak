@@ -14,11 +14,6 @@ struct CalibrationView: View {
         return false
     }
 
-    private var failureReason: CalibrationFailureReason? {
-        if case .failed(let reason) = ringConManager.calibrationPhase { return reason }
-        return nil
-    }
-
     private var title: String {
         switch ringConManager.calibrationPhase {
         case .neutral:
