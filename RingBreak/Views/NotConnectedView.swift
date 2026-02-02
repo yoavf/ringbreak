@@ -18,6 +18,7 @@ struct NotConnectedView: View {
     @State private var isStreakHovered = false
     @State private var isSettingsHovered = false
     @State private var dotCount = 0
+    @State private var dotTimer: Timer?
 
     /// Joy-Con is connected at the HID level (connecting/connected)
     private var joyConActive: Bool {
@@ -168,7 +169,7 @@ struct NotConnectedView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .onAppear { startDotAnimation() }
-                .onDisappear { dotCount = 0 }
+                .onDisappear { dotTimer?.invalidate(); dotTimer = nil; dotCount = 0 }
             } else if ringConManager.connectionState == .connected && !ringConManager.ringConAttached {
                 // MCU ready, scanning for Ring-Con presence
                 HStack(spacing: 0) {
@@ -180,7 +181,7 @@ struct NotConnectedView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .onAppear { startDotAnimation() }
-                .onDisappear { dotCount = 0 }
+                .onDisappear { dotTimer?.invalidate(); dotTimer = nil; dotCount = 0 }
                 Text("Make sure Joy-Con is inserted in Ring-Con")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -211,11 +212,13 @@ struct NotConnectedView: View {
     }
 
     private func startDotAnimation() {
+        dotTimer?.invalidate()
         dotCount = 0
-        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
+        dotTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { timer in
             Task { @MainActor in
                 guard joyConActive else {
                     timer.invalidate()
+                    dotTimer = nil
                     return
                 }
                 dotCount = (dotCount + 1) % 3

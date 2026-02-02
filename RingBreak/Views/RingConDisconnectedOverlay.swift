@@ -22,6 +22,7 @@ struct RingConDisconnectedOverlay: View {
                         .foregroundColor(.secondary)
                 }
                 .buttonStyle(.borderless)
+                .accessibilityLabel("Quit exercise")
                 Spacer()
                 Text("\(gameState.currentReps)/\(gameState.targetReps)")
                     .font(.system(size: 14, weight: .medium, design: .rounded))

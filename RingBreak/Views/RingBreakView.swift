@@ -167,6 +167,8 @@ struct RingBreakView: View {
         .onChange(of: showingCalibration) { calibrating in
             if calibrating {
                 ringConManager.imuProcessingEnabled = true
+            } else {
+                ringConManager.imuProcessingEnabled = (gameState.phase == .squeezePhase || gameState.phase == .pullPhase)
             }
         }
     }
