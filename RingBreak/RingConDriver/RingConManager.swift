@@ -16,6 +16,12 @@ enum CalibrationPhase: Equatable {
     case pull
     case squeeze
     case complete
+    case failed(CalibrationFailureReason)
+}
+
+enum CalibrationFailureReason: Equatable {
+    case noPull
+    case noSqueeze
 }
 
 /// Bluetooth and device status
@@ -91,8 +97,8 @@ class RingConManager: NSObject, ObservableObject {
     private var neutralFlexValue: UInt16 = 0x0A
     private var minFlexValue: UInt16 = 0x00
     private var maxFlexValue: UInt16 = 0x14
-    private let calibrationHoldDuration = 5  // For neutral hold
-    private let calibrationActionDuration = 5  // For pull/squeeze
+    private var calibrationHoldDuration: Int { Constants.calibrationHoldDuration }
+    private var calibrationActionDuration: Int { Constants.calibrationActionDuration }
 
     private struct CalibrationBackup {
         let neutralFlexValue: UInt16
@@ -359,6 +365,10 @@ class RingConManager: NSObject, ObservableObject {
         connectionState = .disconnected
         ringConAttached = false
         mcuInitialized = false
+        ringConMissedCount = 0
+        ringConPresentCount = 0
+        ringConRecoveryTask?.cancel()
+        ringConRecoveryTask = nil
         cancelCalibration()
         hasCalibration = false
         isCalibrating = false
@@ -390,6 +400,10 @@ class RingConManager: NSObject, ObservableObject {
         // Reset Ring-Con state
         ringConAttached = false
         mcuInitialized = false
+        ringConMissedCount = 0
+        ringConPresentCount = 0
+        ringConRecoveryTask?.cancel()
+        ringConRecoveryTask = nil
         mcuReportCount = 0
         neutralFlexByte = nil
         flexValue = 0.5
@@ -398,6 +412,23 @@ class RingConManager: NSObject, ObservableObject {
         // Re-run MCU initialization
         Task {
             await initializeRingCon()
+        }
+    }
+
+    /// Periodically re-initialize MCU to detect Ring-Con re-attachment.
+    /// The MCU stops reporting Ring-Con data after physical detachment and won't
+    /// recover on its own — a full MCU re-init is required to detect re-attachment.
+    private func scheduleRingConRecovery() {
+        ringConRecoveryTask?.cancel()
+        ringConRecoveryTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64(Constants.ringConRecoveryInterval * 1_000_000_000))
+                guard let self = self, self.isConnected, !self.ringConAttached else { return }
+                DebugLogger.shared.log("Attempting Ring-Con recovery (re-initializing MCU)...", category: .ringcon)
+                self.reinitializeRingCon()
+                // Wait for MCU init to complete before next attempt
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+            }
         }
     }
 
@@ -522,6 +553,7 @@ class RingConManager: NSObject, ObservableObject {
 
         // Persist calibration for next app run
         saveCalibration()
+        calibrationBackup = nil
 
         #if DEBUG
         print("Calibration complete:")
@@ -543,11 +575,47 @@ class RingConManager: NSObject, ObservableObject {
         await runPhase(.pull, duration: calibrationActionDuration)
         guard !Task.isCancelled else { return }
 
+        // Check if pull was detected
+        let pullRange = Int(neutralFlexValue) - Int(minFlexValue)
+        guard pullRange >= Constants.calibrationMinRange else {
+            await failCalibration(reason: .noPull)
+            return
+        }
+
         await runPhase(.squeeze, duration: calibrationActionDuration)
         guard !Task.isCancelled else { return }
 
+        // Check if squeeze was detected
+        let squeezeRange = Int(maxFlexValue) - Int(neutralFlexValue)
+        guard squeezeRange >= Constants.calibrationMinRange else {
+            await failCalibration(reason: .noSqueeze)
+            return
+        }
+
         await finishCalibration()
         calibrationTask = nil
+    }
+
+    private func failCalibration(reason: CalibrationFailureReason) async {
+        calibrationInProgress = false
+        isCalibrating = false
+        calibrationSecondsRemaining = 0
+        calibrationPhase = .failed(reason)
+        calibrationTask = nil
+
+        // Restore backup so previous calibration (if any) is preserved
+        if let backup = calibrationBackup {
+            neutralFlexValue = backup.neutralFlexValue
+            minFlexValue = backup.minFlexValue
+            maxFlexValue = backup.maxFlexValue
+            neutralFlexByte = backup.neutralFlexByte
+            hasCalibration = backup.hasCalibration
+        }
+        calibrationBackup = nil
+
+        #if DEBUG
+        print("Calibration failed: no meaningful input detected")
+        #endif
     }
 
     private func runPhase(_ phase: CalibrationPhase, duration: Int) async {
@@ -641,6 +709,11 @@ class RingConManager: NSObject, ObservableObject {
 
     private var mcuReportCount = 0
     private var lastFlexByte: UInt8 = 0x0A  // Neutral position
+    private var ringConMissedCount = 0
+    private var ringConMissedThreshold: Int { Constants.ringConMissedThreshold }
+    private var ringConPresentCount = 0
+    private var ringConPresentThreshold: Int { Constants.ringConPresentThreshold }
+    private var ringConRecoveryTask: Task<Void, Never>?
     private var lastIMUTimestamp = Date()
     private var filteredAcceleration = Vector3.zero
     private var filteredGyro = Vector3.zero
@@ -687,10 +760,12 @@ class RingConManager: NSObject, ObservableObject {
             return
         }
 
-        // RING-CON DATA LOCATION (from Ringcon-Driver joycon.hpp):
-        // Ring-Con flex is at byte 40 as a SINGLE BYTE (0x30 reports)
-        // Values: pulled=0x00 (0), neutral=0x0A (10), squeezed=0x14 (20)
-        guard data.count >= 41 else {
+        // RING-CON DATA LAYOUT (in 0x30 reports after MCU Ring-Con init):
+        // Byte 40: flex sensor value (0x00 = full pull, 0x0A = neutral, 0x14 = full squeeze)
+        // Byte 42: Ring-Con presence indicator (0x20 = attached, 0x00 = not attached)
+        // NOTE: Byte 40 = 0x00 both when fully pulled AND when Ring-Con is absent,
+        //       so byte 42 is the only reliable way to detect physical presence.
+        guard data.count >= 43 else {
             if mcuReportCount <= 10 {
                 DebugLogger.shared.log("MCU report too short: \(data.count) bytes", category: .mcu)
             }
@@ -703,28 +778,44 @@ class RingConManager: NSObject, ObservableObject {
         if mcuReportCount <= 5 {
             let relevantBytes = Array(data[35..<min(50, data.count)])
             let hex = relevantBytes.map { String(format: "%02X", $0) }.joined(separator: " ")
-            DebugLogger.shared.log("Bytes [35-49]: \(hex) | byte40=0x\(String(format: "%02X", data[40]))", category: .mcu)
+            DebugLogger.shared.log("Bytes [35-49]: \(hex) | byte40=0x\(String(format: "%02X", data[40])) byte42=0x\(String(format: "%02X", data[42]))", category: .mcu)
         }
 
-        // Read Ring-Con flex from byte 40 (single byte!)
         let ringConByte = data[40]
+        let ringConPresent = data[42] == 0x20
 
-        // Valid Ring-Con values are 0x00-0x14 (0-20)
-        // Values outside this range mean Ring-Con data isn't present
-        if ringConByte <= 0x14 {
-            // Ring-Con detected!
+        if ringConPresent {
+            ringConMissedCount = 0
+
             if !ringConAttached {
-                ringConAttached = true
-                lastError = nil  // Clear any previous error on successful connection
-                joyConState.mcuState = .ringConMode
-                DebugLogger.shared.log("Ring-Con DETECTED! Initial flex byte: 0x\(String(format: "%02X", ringConByte)) (\(ringConByte))", category: .ringcon)
+                ringConPresentCount += 1
+                if ringConPresentCount >= ringConPresentThreshold {
+                    ringConAttached = true
+                    ringConPresentCount = 0
+                    ringConRecoveryTask?.cancel()
+                    ringConRecoveryTask = nil
+                    lastError = nil
+                    joyConState.mcuState = .ringConMode
+                    DebugLogger.shared.log("Ring-Con DETECTED! flex=0x\(String(format: "%02X", ringConByte)) (\(ringConByte)) presence=0x\(String(format: "%02X", data[42]))", category: .ringcon)
+                }
             }
 
             updateFlexByte(ringConByte)
         } else {
+            ringConPresentCount = 0
+
+            if ringConAttached {
+                ringConMissedCount += 1
+                if ringConMissedCount >= ringConMissedThreshold {
+                    ringConAttached = false
+                    DebugLogger.shared.log("Ring-Con DETACHED (byte 42 != 0x20 for \(ringConMissedThreshold) consecutive reports)", category: .ringcon)
+                    ringConMissedCount = 0
+                    scheduleRingConRecovery()
+                }
+            }
             // Log periodically when Ring-Con not detected
             if mcuReportCount % 500 == 0 {
-                DebugLogger.shared.log("Byte 40 = 0x\(String(format: "%02X", ringConByte)) - outside Ring-Con range (0x00-0x14)", category: .mcu)
+                DebugLogger.shared.log("Ring-Con absent: byte40=0x\(String(format: "%02X", ringConByte)) byte42=0x\(String(format: "%02X", data[42]))", category: .mcu)
             }
         }
     }
@@ -1044,6 +1135,7 @@ extension RingConManager: JoyConHIDDelegate {
 
     nonisolated func joyConHID(_ hid: JoyConHID, didDisconnect error: Error?) {
         Task { @MainActor [weak self] in
+            self?.cancelCalibration()
             self?.connectionState = .disconnected
             self?.ringConAttached = false
             self?.mcuInitialized = false
