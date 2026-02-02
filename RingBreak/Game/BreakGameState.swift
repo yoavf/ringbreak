@@ -21,6 +21,7 @@ enum BreakGamePhase: Equatable {
     case squeezePhase
     case pullPhase
     case celebration
+    case paused
 }
 
 /// Difficulty levels for the game
@@ -64,8 +65,10 @@ class BreakGameState: ObservableObject {
     // MARK: - Published Properties
 
     @Published private(set) var phase: BreakGamePhase = .notConnected
+    @Published private(set) var pausedFromPhase: BreakGamePhase? = nil
+    private var pauseDebounceTask: Task<Void, Never>?
     @Published private(set) var currentReps: Int = 0
-    @Published private(set) var targetReps: Int = 10
+    @Published private(set) var targetReps: Int = Constants.targetReps
     @Published private(set) var totalProgress: Double = 0
     @Published var difficulty: GameDifficulty = .medium {
         didSet {
@@ -97,13 +100,60 @@ class BreakGameState: ObservableObject {
 
     /// Update the game state based on connection status
     func updateConnectionStatus(isConnected: Bool, ringConAttached: Bool) {
-        if !isConnected || !ringConAttached {
+        if !isConnected {
+            // Full Bluetooth disconnect — always reset immediately
+            pauseDebounceTask?.cancel()
+            pauseDebounceTask = nil
             if phase != .notConnected {
+                pausedFromPhase = nil
                 phase = .notConnected
             }
-        } else if phase == .notConnected {
-            phase = .ready
+        } else if !ringConAttached {
+            // Ring-Con physically detached, but Joy-Con still connected
+            if phase == .squeezePhase || phase == .pullPhase {
+                // Mid-exercise: debounce before pausing (Ring-Con can flap briefly)
+                if pauseDebounceTask == nil {
+                    let phaseToSave = phase
+                    pauseDebounceTask = Task {
+                        try? await Task.sleep(nanoseconds: UInt64(Constants.pauseDebounceDuration * 1_000_000_000))
+                        guard !Task.isCancelled else { return }
+                        // Still in exercise phase — actually pause
+                        if phase == phaseToSave {
+                            pausedFromPhase = phaseToSave
+                            phase = .paused
+                        }
+                    }
+                }
+            } else if phase == .paused {
+                // Already paused — no-op
+            } else if phase != .notConnected {
+                // Ready/celebration/etc: nothing to preserve
+                pauseDebounceTask?.cancel()
+                pauseDebounceTask = nil
+                phase = .notConnected
+            }
+        } else {
+            // Ring-Con attached — cancel any pending pause
+            pauseDebounceTask?.cancel()
+            pauseDebounceTask = nil
+            if phase == .paused, let resumePhase = pausedFromPhase {
+                // Reattached while paused — resume
+                pausedFromPhase = nil
+                phase = resumePhase
+            } else if phase == .notConnected {
+                phase = .ready
+            }
         }
+    }
+
+    /// Quit from paused state back to ready
+    func quitFromPause() {
+        pauseDebounceTask?.cancel()
+        pauseDebounceTask = nil
+        pausedFromPhase = nil
+        phase = .ready
+        currentReps = 0
+        totalProgress = 0
     }
 
     /// Start a new exercise session
@@ -117,6 +167,8 @@ class BreakGameState: ObservableObject {
 
     /// Reset to ready state
     func reset() {
+        pauseDebounceTask?.cancel()
+        pauseDebounceTask = nil
         phase = .ready
         currentReps = 0
         totalProgress = 0
@@ -124,6 +176,8 @@ class BreakGameState: ObservableObject {
 
     /// Return to home/ready state (can be called at any time)
     func returnToHome() {
+        pauseDebounceTask?.cancel()
+        pauseDebounceTask = nil
         phase = .ready
         currentReps = 0
         totalProgress = 0
