@@ -18,6 +18,7 @@ struct ReadyView: View {
 
     @State private var isStreakHovered = false
     @State private var isSettingsHovered = false
+    @State private var countdownTimer: Timer?
     @Environment(\.colorScheme) private var colorScheme
 
     private var countdownColor: Color {
@@ -36,6 +37,8 @@ struct ReadyView: View {
                 HStack {
                     Button {
                         // Cancel countdown
+                        countdownTimer?.invalidate()
+                        countdownTimer = nil
                         isCountingDown = false
                     } label: {
                         Image(systemName: "xmark")
@@ -180,8 +183,13 @@ struct ReadyView: View {
         // Play sound for "3"
         SoundHelper.play("Tink")
 
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak gameState] timer in
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak gameState] timer in
             Task { @MainActor in
+                guard isCountingDown else {
+                    timer.invalidate()
+                    countdownTimer = nil
+                    return
+                }
                 if startCountdown > 1 {
                     withAnimation {
                         startCountdown -= 1
@@ -189,6 +197,7 @@ struct ReadyView: View {
                     SoundHelper.play("Tink")
                 } else {
                     timer.invalidate()
+                    countdownTimer = nil
                     SoundHelper.play("Glass")
                     // No animation - instant transition to match layouts exactly
                     isCountingDown = false
