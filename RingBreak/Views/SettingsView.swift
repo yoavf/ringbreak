@@ -84,7 +84,6 @@ struct SettingsView: View {
                     SettingsSection(title: "Ring-Con") {
                         Button {
                             if ringConManager.isConnected {
-                                ringConManager.startGuidedCalibration()
                                 showingCalibration = true
                             }
                         } label: {
