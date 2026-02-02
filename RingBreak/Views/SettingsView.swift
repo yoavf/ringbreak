@@ -96,7 +96,8 @@ struct SettingsView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Calibrate")
                                         .foregroundColor(ringConManager.isConnected && ringConManager.ringConAttached ? .primary : .secondary)
-                                    Text(ringConManager.isConnected && ringConManager.ringConAttached ? "Reset neutral position" : "Connect Ring-Con first")
+                                    let calibrationAvailable = ringConManager.isConnected && ringConManager.ringConAttached
+                                    Text(calibrationAvailable ? "Reset neutral position" : "Connect Ring-Con first")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }

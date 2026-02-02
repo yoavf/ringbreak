@@ -79,7 +79,9 @@ struct CelebrationView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             // Button below the ring
-            Button(action: { onDoAnother() }) {
+            Button {
+                onDoAnother()
+            } label: {
                 Text("Do Another")
                     .font(.system(size: 18, weight: .semibold))
                     .frame(width: 140)

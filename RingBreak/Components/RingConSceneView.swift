@@ -1,4 +1,3 @@
-
 //
 //  RingConSceneView.swift
 //  RingBreak
@@ -69,7 +68,6 @@ struct RingConSceneView: NSViewRepresentable {
         print("=== Scene hierarchy ===")
         printNodeHierarchy(scene.rootNode, indent: 0)
         #endif
-
 
         // Find nodes and morphers
         scene.rootNode.enumerateChildNodes { node, _ in

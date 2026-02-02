@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: Build RingBreak
+    name: Lint & Build RingBreak
     runs-on: macos-14
 
     steps:
@@ -19,6 +19,12 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Lint
+        run: swiftlint lint --strict
 
       - name: Show Xcode version
         run: xcodebuild -version
