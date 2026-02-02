@@ -83,21 +83,20 @@ struct SettingsView: View {
                     // Calibration Section
                     SettingsSection(title: "Ring-Con") {
                         Button {
-                            if ringConManager.isConnected {
-                                ringConManager.startGuidedCalibration()
+                            if ringConManager.isConnected && ringConManager.ringConAttached {
                                 showingCalibration = true
                             }
                         } label: {
                             HStack {
                                 Image(systemName: "arrow.triangle.2.circlepath")
                                     .font(.system(size: 16))
-                                    .foregroundColor(ringConManager.isConnected ? .accentColor : .secondary)
+                                    .foregroundColor(ringConManager.isConnected && ringConManager.ringConAttached ? .accentColor : .secondary)
                                     .frame(width: 28)
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Calibrate")
-                                        .foregroundColor(ringConManager.isConnected ? .primary : .secondary)
-                                    Text(ringConManager.isConnected ? "Reset neutral position" : "Connect Ring-Con first")
+                                        .foregroundColor(ringConManager.isConnected && ringConManager.ringConAttached ? .primary : .secondary)
+                                    Text(ringConManager.isConnected && ringConManager.ringConAttached ? "Reset neutral position" : "Connect Ring-Con first")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }

@@ -17,19 +17,87 @@ enum SoundHelper {
 }
 
 enum Constants {
-    // MARK: - Exercise Detection
+    // MARK: - Exercise
 
-    /// Flex value threshold for detecting the start of activity (above neutral)
-    static let activityStartThreshold: Double = 0.55
+    /// Flex value at which the ring is considered "at rest" (neutral).
+    /// Below this = idle, above = active effort in squeeze direction.
+    /// Pull direction uses 1.0 - this value.
+    static let relaxedThreshold: Double = 0.55
 
-    /// Flex value threshold for squeeze detection trigger in ready state
+    /// Flex value that triggers auto-start countdown from ready state
     static let squeezeStartThreshold: Double = 0.70
 
-    /// Duration in seconds to hold at target for a successful rep
+    /// Seconds to hold at target for a successful rep
     static let holdDuration: Int = 3
 
-    /// Seconds of failed attempts before showing calibration prompt
-    static let calibrationPromptDelay: TimeInterval = 8
+    /// Pre-exercise countdown (3, 2, 1, go)
+    static let startCountdown: Int = 3
+
+    /// Default number of reps per session
+    static let targetReps: Int = 10
+
+    /// Seconds of struggling before showing "Calibrate pressure?" prompt
+    static let calibrationPromptDelay: TimeInterval = 5
+
+    // MARK: - Ring-Con Detection
+
+    /// Consecutive HID reports without presence byte before marking Ring-Con detached
+    static let ringConMissedThreshold: Int = 15
+
+    /// Consecutive presence bytes needed before confirming Ring-Con attached
+    static let ringConPresentThreshold: Int = 3
+
+    /// Seconds to wait before pausing game on Ring-Con detach (filters brief flapping)
+    static let pauseDebounceDuration: TimeInterval = 1.5
+
+    /// Seconds between MCU re-init attempts to detect Ring-Con re-attachment
+    static let ringConRecoveryInterval: TimeInterval = 5.0
+
+    // MARK: - Calibration
+
+    /// Seconds to hold neutral position during calibration
+    static let calibrationHoldDuration: Int = 5
+
+    /// Seconds to perform pull/squeeze during calibration
+    static let calibrationActionDuration: Int = 5
+
+    /// Minimum raw flex range (pull or squeeze) for calibration to be considered valid
+    static let calibrationMinRange: Int = 2
+
+    // MARK: - Difficulty
+
+    /// Target flex thresholds per difficulty (fraction of calibrated range the user must reach)
+    static let easyTargetThreshold: Double = 0.65
+    static let mediumTargetThreshold: Double = 0.75
+    static let hardTargetThreshold: Double = 0.80
+
+    /// Hold tolerance per difficulty (how far flex can drop below target and still count)
+    static let easyHoldTolerance: Double = 0.18
+    static let mediumHoldTolerance: Double = 0.13
+    static let hardHoldTolerance: Double = 0.08
+
+    // MARK: - Connection
+
+    /// Maximum auto-connect retry attempts after a paired device is found
+    static let autoConnectMaxAttempts: Int = 3
+
+    // MARK: - Gyro Stability
+
+    /// Consecutive stable gyro samples required before accepting bias
+    static let stableGyroSampleTarget: Int = 10
+
+    /// Angular velocity (deg/s) below which the gyro is considered stable
+    static let stableGyroThreshold: Double = 5.0
+
+    // MARK: - History
+
+    /// Default number of days shown in the streak graph / recent history
+    static let historyDays: Int = 7
+
+    // MARK: - Debug
+
+    /// Maximum log entries kept in memory by DebugLogger
+    static let maxLogEntries: Int = 500
 
     // MARK: - Timers
 
@@ -38,11 +106,6 @@ enum Constants {
 
     /// Notification snooze duration in seconds (30 minutes)
     static let snoozeDuration: TimeInterval = 30 * 60
-
-    // MARK: - Rep Detection Debounce
-
-    /// Minimum time between reps to prevent double-counting
-    static let repDebounceInterval: TimeInterval = 0.3
 
     // MARK: - URLs
 

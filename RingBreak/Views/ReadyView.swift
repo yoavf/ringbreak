@@ -133,10 +133,10 @@ struct ReadyView: View {
             } else {
                 VStack(spacing: 12) {
                     if gameState.sessionsToday > 0 {
-                        VStack(spacing: 2) {
+                        HStack(spacing: 6) {
                             Text("\(gameState.sessionsToday)")
-                                .font(.system(size: 28, weight: .bold, design: .rounded))
-                            Text("sessions today")
+                                .font(.system(size: 16, weight: .bold, design: .rounded))
+                            Text(gameState.sessionsToday == 1 ? "session today" : "sessions today")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -157,18 +157,13 @@ struct ReadyView: View {
                 .padding(.bottom, 8)
 
                 // STATUS - at bottom, fixed size (only when not counting down)
-                HStack(spacing: 4) {
-                    Circle().fill(Color.green).frame(width: 6, height: 6)
-                    Text("Connected")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-                .frame(height: 50)
-                .padding(.bottom, 12)
+                DeviceStatusBar(ringConManager: ringConManager)
+                    .frame(height: 50)
+                    .padding(.bottom, 12)
             }
         }
         .onChange(of: ringConManager.flexValue) { newValue in
-            if gameState.phase == .ready && !isCountingDown && newValue > 0.70 {
+            if gameState.phase == .ready && !isCountingDown && newValue > Constants.squeezeStartThreshold {
                 startWithCountdown()
             }
         }
@@ -178,7 +173,7 @@ struct ReadyView: View {
         guard !isCountingDown else { return }
 
         isCountingDown = true
-        startCountdown = 3
+        startCountdown = Constants.startCountdown
 
         // Play sound for "3"
         SoundHelper.play("Tink")

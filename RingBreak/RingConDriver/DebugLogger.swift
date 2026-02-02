@@ -15,7 +15,7 @@ class DebugLogger: ObservableObject {
     static let shared = DebugLogger()
 
     /// Maximum number of log entries to keep in memory
-    private let maxEntries = 500
+    private var maxEntries: Int { Constants.maxLogEntries }
 
     /// All log entries
     @Published private(set) var entries: [DebugEntry] = []
@@ -23,14 +23,20 @@ class DebugLogger: ObservableObject {
     /// Latest raw report data (hex string)
     @Published private(set) var lastRawReport: String = "No data yet"
 
-    /// Report type counts
+    /// Report type counts (published at throttled rate for UI)
     @Published private(set) var reportCounts: [UInt8: Int] = [:]
+    /// Internal counter updated on every report (not published)
+    private var internalReportCounts: [UInt8: Int] = [:]
 
     /// Last flex value seen (raw)
     @Published var lastRawFlexValue: UInt16 = 0
 
     /// Last IMU sample magnitude (deg/s)
     @Published var lastAngularVelocityMagnitude: Double = 0
+
+    /// Throttle interval for UI-facing report updates (seconds)
+    private let reportUpdateInterval: TimeInterval = 0.1  // 10 Hz
+    private var lastReportUpdateTime: Date = .distantPast
 
     /// MCU initialization steps completed
     @Published private(set) var mcuSteps: [String] = []
@@ -69,18 +75,23 @@ class DebugLogger: ObservableObject {
         }
 
         let reportID = data[0]
+        let newCount = (internalReportCounts[reportID] ?? 0) + 1
+        internalReportCounts[reportID] = newCount
 
-        // Update counts
-        reportCounts[reportID, default: 0] += 1
+        // Only update @Published properties at throttled rate to avoid SwiftUI churn
+        let now = Date()
+        if now.timeIntervalSince(lastReportUpdateTime) >= reportUpdateInterval {
+            lastReportUpdateTime = now
+            reportCounts = internalReportCounts
 
-        // Format hex string
-        let hexString = data.prefix(64).map { String(format: "%02X", $0) }.joined(separator: " ")
-        lastRawReport = "ID: 0x\(String(format: "%02X", reportID)) Len: \(data.count)\n\(hexString)"
+            let hexString = data.prefix(64).map { String(format: "%02X", $0) }.joined(separator: " ")
+            lastRawReport = "ID: 0x\(String(format: "%02X", reportID)) Len: \(data.count)\n\(hexString)"
+        }
 
         // Log first few of each type, then periodic
-        let count = reportCounts[reportID] ?? 0
-        if count <= 3 || count % 100 == 0 {
-            log("Report 0x\(String(format: "%02X", reportID)) (#\(count), \(data.count) bytes): \(hexString)", category: .hid)
+        if newCount <= 3 || newCount % 100 == 0 {
+            let hexString = data.prefix(64).map { String(format: "%02X", $0) }.joined(separator: " ")
+            log("Report 0x\(String(format: "%02X", reportID)) (#\(newCount), \(data.count) bytes): \(hexString)", category: .hid)
         }
     }
 

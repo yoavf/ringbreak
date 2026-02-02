@@ -9,6 +9,11 @@ struct CalibrationView: View {
     @ObservedObject var ringConManager: RingConManager
     let onClose: () -> Void
 
+    private var isFailed: Bool {
+        if case .failed = ringConManager.calibrationPhase { return true }
+        return false
+    }
+
     private var title: String {
         switch ringConManager.calibrationPhase {
         case .neutral:
@@ -19,6 +24,8 @@ struct CalibrationView: View {
             return "Squeeze Hardest"
         case .complete:
             return "Calibration Complete"
+        case .failed:
+            return "Calibration Failed"
         default:
             return "Calibration"
         }
@@ -34,6 +41,13 @@ struct CalibrationView: View {
             return "Squeeze the Ring-Con as hard as you can."
         case .complete:
             return "You're all set. This range will be used for flex scaling."
+        case .failed(let reason):
+            switch reason {
+            case .noPull:
+                return "No pull was detected. Make sure the Ring-Con is attached and try again."
+            case .noSqueeze:
+                return "No squeeze was detected. Make sure the Ring-Con is attached and try again."
+            }
         default:
             return "Starting calibration..."
         }
@@ -49,7 +63,7 @@ struct CalibrationView: View {
             return 0.0
         case .squeeze:
             return 1.0
-        case .complete:
+        case .complete, .failed:
             return 0.5
         default:
             return 0.5
@@ -78,39 +92,66 @@ struct CalibrationView: View {
                     .foregroundColor(.secondary)
                     .frame(maxWidth: 240)
 
-                if ringConManager.calibrationPhase != .complete {
-                    Text("\(ringConManager.calibrationSecondsRemaining)s")
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                } else {
+                if ringConManager.calibrationPhase == .complete {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 48))
                         .foregroundColor(.green)
+                } else if isFailed {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(.orange)
+                } else {
+                    Text("\(ringConManager.calibrationSecondsRemaining)s")
+                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .monospacedDigit()
                 }
 
-                HStack(spacing: 12) {
+                if isFailed {
+                    HStack(spacing: 12) {
+                        Button("Cancel") {
+                            onClose()
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button("Retry") {
+                            ringConManager.startGuidedCalibration()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                } else if ringConManager.calibrationPhase == .complete {
+                    VStack(spacing: 20) {
+                        Button("Done") {
+                            onClose()
+                        }
+                        .buttonStyle(.borderedProminent)
+
+                        Button("Redo calibration") {
+                            ringConManager.startGuidedCalibration()
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(.accentColor)
+                        .font(.caption)
+                    }
+                } else {
                     Button("Cancel") {
                         ringConManager.cancelCalibration()
                         onClose()
                     }
                     .buttonStyle(.bordered)
-
-                    if ringConManager.calibrationPhase == .complete {
-                        Button("Done") {
-                            onClose()
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
                 }
             }
         }
         .frame(minWidth: 480, minHeight: 280)
         .padding()
-        .onChange(of: ringConManager.calibrationPhase) { newPhase in
-            if newPhase == .complete {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    onClose()
-                }
+        .onAppear {
+            if !ringConManager.isCalibrating {
+                ringConManager.startGuidedCalibration()
+            }
+        }
+        .onChange(of: ringConManager.isConnected) { connected in
+            if !connected {
+                ringConManager.cancelCalibration()
+                onClose()
             }
         }
     }
