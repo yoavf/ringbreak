@@ -84,11 +84,6 @@ class DebugLogger: ObservableObject {
         }
     }
 
-    func logFlexValue(raw: UInt16, normalized: Double, offset: Int) {
-        lastRawFlexValue = raw
-        log("Flex: raw=0x\(String(format: "%04X", raw)) (\(raw)) normalized=\(String(format: "%.3f", normalized)) offset=\(offset)", category: .ringcon)
-    }
-
     func logMCUStep(_ step: String, success: Bool) {
         let status = success ? "✓" : "✗"
         let message = "\(status) \(step)"

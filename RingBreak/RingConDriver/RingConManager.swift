@@ -385,6 +385,7 @@ class RingConManager: NSObject, ObservableObject {
     /// Call this after the user clips in the Ring-Con to re-detect it
     func reinitializeRingCon() {
         guard isConnected else { return }
+        DebugLogger.shared.log("Re-initializing Ring-Con MCU (post-onboarding)", category: .mcu)
 
         // Reset Ring-Con state
         ringConAttached = false
