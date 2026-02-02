@@ -301,6 +301,49 @@ struct SettingsView: View {
                         }
                     }
 
+                    // Debug Section
+                    SettingsSection(title: "Debug") {
+                        Button {
+                            let connectionState = "\(ringConManager.connectionState)"
+                            let bluetoothStatus = "\(ringConManager.bluetoothStatus)"
+                            let ringConAttached = ringConManager.ringConAttached
+                            let calibrationInfo = ringConManager.isConnected
+                                ? "flex=\(String(format: "%.1f%%", ringConManager.flexValue * 100))"
+                                : "not connected"
+                            DebugLogger.shared.presentExportPanel(
+                                connectionState: connectionState,
+                                bluetoothStatus: bluetoothStatus,
+                                ringConAttached: ringConAttached,
+                                calibrationInfo: calibrationInfo
+                            )
+                        } label: {
+                            HStack {
+                                Image(systemName: "ladybug")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.accentColor)
+                                    .frame(width: 28)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Export Debug Logs")
+                                        .foregroundColor(.primary)
+                                    Text("Save connection & sensor logs to file")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.secondary.opacity(0.5))
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     // About Section
                     SettingsSection(title: "About") {
                         VStack(spacing: 0) {
