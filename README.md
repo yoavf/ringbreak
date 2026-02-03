@@ -14,10 +14,17 @@ A macOS menu bar app for quick exercise breaks using the Nintendo Ring-Con contr
 ## Setup
 
 1. Open System Settings > Bluetooth
-2. Put Joy-Con (R) into pairing mode by holding the sync button until lights flash
+2. Put Joy-Con (R) - the right hand one! -  into pairing mode by holding the sync button until lights flash
 3. Pair the Joy-Con in Bluetooth settings
 4. Slide the Joy-Con into the Ring-Con rail until it clicks
 5. Launch Ring Break and click "Connect"
+
+## Usage
+
+- Connect your Ring-Con and press Start
+- Complete squeeze and pull exercises
+- The app tracks daily sessions and streaks
+- Optional reminders can be enabled in Settings
 
 ## Building
 
@@ -32,16 +39,9 @@ The repo includes a custom 3D model of the Ring-Con (hand-crafted with love) whi
 
 Open `RingBreak.xcodeproj` in Xcode and build the project.
 
-## Usage
-
-- Connect your Ring-Con and press Start
-- Complete squeeze and pull exercises
-- The app tracks daily sessions and streaks
-- Optional reminders can be enabled in Settings
-
 ## Disclaimer
 
-This project is not affiliated with, endorsed by, or connected to Nintendo in any way. We just really like squeezing their ring.
+This project is not affiliated with, endorsed by, or connected to Nintendo in any way. I just like squeezing their ring.
 
 ## License
 
