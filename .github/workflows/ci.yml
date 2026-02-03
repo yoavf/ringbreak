@@ -36,7 +36,14 @@ jobs:
             -scheme RingBreak \
             -configuration Release \
             -destination 'platform=macOS' \
+            -derivedDataPath build \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            ENABLE_TESTABILITY=YES
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload Test Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: RingBreak-PR-${{ github.event.pull_request.number }}
+          path: build/Build/Products/Release/RingBreak.app
+          retention-days: 7
