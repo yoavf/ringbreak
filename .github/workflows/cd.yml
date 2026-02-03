@@ -225,13 +225,21 @@ jobs:
             "build/${APP_NAME}-${{ steps.version.outputs.version }}.dmg" \
             "${{ steps.sparkle_sign.outputs.signature }}"
 
-      - name: Commit appcast.xml to repository
+      - name: Publish appcast.xml
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Save appcast.xml before switching branches
+          cp appcast.xml /tmp/appcast.xml
+
+          # Create or update the appcast branch (unprotected)
+          git checkout --orphan appcast-temp
+          git rm -rf . || true
+          cp /tmp/appcast.xml appcast.xml
           git add appcast.xml
-          git commit -m "Update appcast.xml for v${{ steps.version.outputs.version }}" || echo "No changes to commit"
-          git push origin HEAD:main
+          git commit -m "Update appcast.xml for v${{ steps.version.outputs.version }}"
+          git push origin appcast-temp:appcast --force
 
       - name: Generate release notes
         id: release_notes

@@ -13,7 +13,7 @@
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>RingBreak sends reminders to help you take regular exercise breaks throughout the day.</string>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/yoavf/ringbreak/main/appcast.xml</string>
+	<string>https://raw.githubusercontent.com/yoavf/ringbreak/appcast/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>f8bS7814TtToIxVntwRw8zRnpexL9DCkdRS0YIxD3cI=</string>
 </dict>
