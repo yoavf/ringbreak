@@ -14,7 +14,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if !flag {
             openMainWindow()
         }
-        return true
+        // Return false to prevent SwiftUI WindowGroup from creating a new window
+        return false
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
@@ -47,10 +48,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
 
-            // Use the newer activation API which works better
+            // Activate app and bring window to front
+            // Use NSRunningApplication for more reliable activation from accessory mode
             NSRunningApplication.current.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
-
             window.makeKeyAndOrderFront(nil)
+
+            // If window didn't become key (activation still in progress), retry after short delay
+            if !window.isKeyWindow {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    NSApp.activate(ignoringOtherApps: true)
+                    window.makeKeyAndOrderFront(nil)
+                }
+            }
 
             print("After show: visible=\(window.isVisible) isKey=\(window.isKeyWindow)")
             return
