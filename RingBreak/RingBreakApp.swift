@@ -47,10 +47,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
 
-            // Use the newer activation API which works better
-            NSRunningApplication.current.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
-
-            window.makeKeyAndOrderFront(nil)
+            // Make window visible first, then activate app, then make window key
+            // This sequence works reliably when restoring a hidden window
+            window.orderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKey()
 
             print("After show: visible=\(window.isVisible) isKey=\(window.isKeyWindow)")
             return

@@ -123,9 +123,9 @@ class MenubarController: ObservableObject {
         }
 
         // Show the window via AppDelegate callback
-        // Need slight delay after mode change for window activation to work
+        // Need delay after activation policy change for system to register the change
         if wasAccessory {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.onActivate?()
             }
         } else {
