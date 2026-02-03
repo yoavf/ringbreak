@@ -120,6 +120,30 @@ jobs:
             CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
             OTHER_CODE_SIGN_FLAGS="--timestamp --options runtime"
 
+      - name: Re-sign Sparkle framework for notarization
+        env:
+          CODE_SIGN_IDENTITY: ${{ secrets.CODE_SIGN_IDENTITY }}
+        run: |
+          SPARKLE_FRAMEWORK="build/Release/${APP_NAME}.app/Contents/Frameworks/Sparkle.framework"
+
+          # Re-sign all nested binaries with Developer ID and secure timestamp
+          find "$SPARKLE_FRAMEWORK" -type f \( -name "Autoupdate" -o -name "Downloader" -o -name "Installer" -o -name "Updater" \) | while read binary; do
+            echo "Signing: $binary"
+            codesign --force --sign "$CODE_SIGN_IDENTITY" --timestamp --options runtime "$binary"
+          done
+
+          # Re-sign XPC services
+          find "$SPARKLE_FRAMEWORK" -name "*.xpc" -type d | while read xpc; do
+            echo "Signing XPC: $xpc"
+            codesign --force --sign "$CODE_SIGN_IDENTITY" --timestamp --options runtime "$xpc"
+          done
+
+          # Re-sign the framework itself
+          codesign --force --sign "$CODE_SIGN_IDENTITY" --timestamp --options runtime "$SPARKLE_FRAMEWORK"
+
+          # Re-sign the main app to update its seal
+          codesign --force --sign "$CODE_SIGN_IDENTITY" --timestamp --options runtime --entitlements RingBreak/RingBreak.entitlements "build/Release/${APP_NAME}.app"
+
       - name: Verify code signature
         run: |
           codesign --verify --deep --strict "build/Release/${APP_NAME}.app"
