@@ -12,9 +12,12 @@ import Combine
 class MenubarController: ObservableObject {
     private var statusItem: NSStatusItem?
     private var updateTimer: Timer?
+    private var updateMenuItem: NSMenuItem?
     private var onActivate: (() -> Void)?
     private var sessionObserver: NSObjectProtocol?
     private var timeMenuItem: NSMenuItem?
+    private var cancellables = Set<AnyCancellable>()
+    private let updateService: UpdateService
 
     @Published var isVisible: Bool = true {
         didSet {
@@ -23,15 +26,18 @@ class MenubarController: ObservableObject {
         }
     }
 
-    init() {
+    init(updateService: UpdateService = .shared) {
+        self.updateService = updateService
         self.isVisible = UserDefaults.standard.object(forKey: UserDefaultsKeys.showMenubarIcon) as? Bool ?? false
 
         if isVisible {
             setupStatusItem()
             setupMenu()
         }
+        bindUpdateService()
         startTimer()
         setupSessionObserver()
+        updateService.start()
     }
 
     deinit {
@@ -95,6 +101,15 @@ class MenubarController: ObservableObject {
 
         menu.addItem(NSMenuItem.separator())
 
+        // Updates (only show if configured)
+        if updateService.canCheckForUpdates {
+            let updateItem = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+            updateItem.target = self
+            menu.addItem(updateItem)
+            updateMenuItem = updateItem
+            menu.addItem(NSMenuItem.separator())
+        }
+
         // Open Ring Break
         let openItem = NSMenuItem(title: "Open Ring Break", action: #selector(openApp), keyEquivalent: "o")
         openItem.target = self
@@ -149,6 +164,33 @@ class MenubarController: ObservableObject {
             Task { @MainActor in
                 self?.updateTimeDisplay()
             }
+        }
+    }
+
+    @objc private func checkForUpdates() {
+        updateService.checkForUpdates()
+    }
+
+    private func bindUpdateService() {
+        updateService.$state
+            .receive(on: RunLoop.main)
+            .sink { [weak self] state in
+                self?.applyUpdateState(state)
+            }
+            .store(in: &cancellables)
+    }
+
+    private func applyUpdateState(_ state: UpdateService.State) {
+        switch state {
+        case .idle, .upToDate:
+            updateMenuItem?.title = "Check for Updates…"
+            updateMenuItem?.isEnabled = true
+        case .checking:
+            updateMenuItem?.title = "Checking…"
+            updateMenuItem?.isEnabled = false
+        case .available:
+            updateMenuItem?.title = "Update Available"
+            updateMenuItem?.isEnabled = true
         }
     }
 

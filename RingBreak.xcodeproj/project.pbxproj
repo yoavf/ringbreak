@@ -40,6 +40,8 @@
 		KKK00003 /* ring-break-logo-light.png in Resources */ = {isa = PBXBuildFile; fileRef = KKK00004 /* ring-break-logo-light.png */; };
 		LLL00001 /* MenubarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = LLL00002 /* MenubarController.swift */; };
 		LLL00003 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = LLL00004 /* NotificationService.swift */; };
+		SPKBLD01 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = SPKPROD01 /* Sparkle */; };
+		UPD00001 /* UpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = UPD00002 /* UpdateService.swift */; };
 		LLL00005 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LLL00006 /* OnboardingView.swift */; };
 		MMM00001 /* UserDefaultsKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = MMM00002 /* UserDefaultsKeys.swift */; };
 		MMM00003 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = MMM00004 /* Constants.swift */; };
@@ -87,6 +89,7 @@
 		LLL00006 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		MMM00002 /* UserDefaultsKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsKeys.swift; sourceTree = "<group>"; };
 		MMM00004 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		UPD00002 /* UpdateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateService.swift; sourceTree = "<group>"; };
 		TST00010 /* RingBreakTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RingBreakTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		TST00011 /* BreakGameStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BreakGameStateTests.swift; sourceTree = "<group>"; };
 		TST00012 /* GameDifficultyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameDifficultyTests.swift; sourceTree = "<group>"; };
@@ -99,6 +102,7 @@
 			files = (
 				AAA00004 /* IOKit.framework in Frameworks */,
 				AAA00005 /* IOBluetooth.framework in Frameworks */,
+				SPKBLD01 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -269,6 +273,7 @@
 			isa = PBXGroup;
 			children = (
 				LLL00004 /* NotificationService.swift */,
+				UPD00002 /* UpdateService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -297,6 +302,9 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			packageProductDependencies = (
+				SPKPROD01 /* Sparkle */,
 			);
 			name = RingBreak;
 			productName = RingBreak;
@@ -351,6 +359,9 @@
 			productRefGroup = AAA000A0 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
+			packageReferences = (
+				SPKPKG01 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			targets = (
 				AAA000B0 /* RingBreak */,
 				TST00030 /* RingBreakTests */,
@@ -399,6 +410,7 @@
 				III00001 /* RingBreakLogo.swift in Sources */,
 				LLL00001 /* MenubarController.swift in Sources */,
 				LLL00003 /* NotificationService.swift in Sources */,
+				UPD00001 /* UpdateService.swift in Sources */,
 				LLL00005 /* OnboardingView.swift in Sources */,
 				MMM00001 /* UserDefaultsKeys.swift in Sources */,
 				MMM00003 /* Constants.swift in Sources */,
@@ -442,6 +454,25 @@
 			shellScript = "if command -v swiftlint >/dev/null 2>&1; then\n  swiftlint\nelse\n  echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		SPKPKG01 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		SPKPROD01 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = SPKPKG01 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		AAA00110 /* Debug */ = {
