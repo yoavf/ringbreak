@@ -48,8 +48,7 @@ final class UpdateService: NSObject, ObservableObject {
     func checkForUpdates() {
         guard let updaterController else { return }
         state = .checking
-        // Use background check to suppress error dialogs; update UI still shown if available
-        updaterController.updater.checkForUpdatesInBackground()
+        updaterController.checkForUpdates(nil)
     }
 }
 

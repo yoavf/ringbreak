@@ -213,9 +213,12 @@ jobs:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
           DMG_PATH="build/${APP_NAME}-${{ steps.version.outputs.version }}.dmg"
-          SIGNATURE=$(/tmp/sparkle/bin/sign_update "$DMG_PATH" --ed-key-file <(echo -n "$SPARKLE_PRIVATE_KEY"))
+          # sign_update outputs: sparkle:edSignature=BASE64 length=SIZE
+          # Extract just the base64 signature
+          FULL_OUTPUT=$(/tmp/sparkle/bin/sign_update "$DMG_PATH" --ed-key-file <(echo -n "$SPARKLE_PRIVATE_KEY"))
+          SIGNATURE=$(echo "$FULL_OUTPUT" | sed 's/sparkle:edSignature=\([^ ]*\).*/\1/')
           echo "signature=$SIGNATURE" >> $GITHUB_OUTPUT
-          echo "Sparkle signature generated"
+          echo "Sparkle signature generated: $SIGNATURE"
 
       - name: Generate appcast.xml
         run: |
