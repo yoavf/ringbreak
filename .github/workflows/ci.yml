@@ -42,9 +42,14 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             ENABLE_TESTABILITY=YES
 
+      - name: Package App for Download
+        run: |
+          cd build/Build/Products/Release
+          zip -r -y RingBreak.zip RingBreak.app
+
       - name: Upload Test Build
         uses: actions/upload-artifact@v4
         with:
           name: RingBreak-PR-${{ github.event.pull_request.number }}
-          path: build/Build/Products/Release/RingBreak.app
+          path: build/Build/Products/Release/RingBreak.zip
           retention-days: 7
