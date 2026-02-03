@@ -72,6 +72,9 @@ class MenubarController: ObservableObject {
     }
 
     private func setupStatusItem() {
+        // Avoid creating duplicate status items
+        guard statusItem == nil else { return }
+
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         guard let button = statusItem?.button else { return }
