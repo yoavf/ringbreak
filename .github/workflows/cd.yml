@@ -177,6 +177,38 @@ jobs:
         run: |
           mv "build/${APP_NAME}.dmg" "build/${APP_NAME}-${{ steps.version.outputs.version }}.dmg"
 
+      - name: Download Sparkle tools
+        run: |
+          curl -L -o /tmp/sparkle.tar.xz "https://github.com/sparkle-project/Sparkle/releases/download/2.8.1/Sparkle-2.8.1.tar.xz"
+          mkdir -p /tmp/sparkle
+          tar -xf /tmp/sparkle.tar.xz -C /tmp/sparkle
+
+      - name: Sign DMG for Sparkle updates
+        id: sparkle_sign
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          DMG_PATH="build/${APP_NAME}-${{ steps.version.outputs.version }}.dmg"
+          SIGNATURE=$(/tmp/sparkle/bin/sign_update "$DMG_PATH" --ed-key-file <(echo -n "$SPARKLE_PRIVATE_KEY"))
+          echo "signature=$SIGNATURE" >> $GITHUB_OUTPUT
+          echo "Sparkle signature generated"
+
+      - name: Generate appcast.xml
+        run: |
+          chmod +x scripts/generate-appcast.sh
+          ./scripts/generate-appcast.sh \
+            "${{ steps.version.outputs.version }}" \
+            "build/${APP_NAME}-${{ steps.version.outputs.version }}.dmg" \
+            "${{ steps.sparkle_sign.outputs.signature }}"
+
+      - name: Commit appcast.xml to repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add appcast.xml
+          git commit -m "Update appcast.xml for v${{ steps.version.outputs.version }}" || echo "No changes to commit"
+          git push origin HEAD:main
+
       - name: Generate release notes
         id: release_notes
         run: |

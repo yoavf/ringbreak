@@ -91,17 +91,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct RingBreakApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var menubarController = MenubarController()
+    @StateObject private var updateService = UpdateService.shared
+    @StateObject private var menubarController: MenubarController
     @StateObject private var notificationService = NotificationService.shared
 
     init() {
         // Set up notification delegate
         UNUserNotificationCenter.current().delegate = NotificationService.shared
+
+        _menubarController = StateObject(
+            wrappedValue: MenubarController(updateService: UpdateService.shared)
+        )
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView(menubarController: menubarController)
+                .environmentObject(updateService)
                 .environmentObject(notificationService)
                 .onAppear {
                     setupApp()
